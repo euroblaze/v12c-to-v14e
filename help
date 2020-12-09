@@ -1,0 +1,62 @@
+    _inherit = "hr.applicant"
+    old_id = fields.Integer(string='id before migration')
+    old_partner_id = fields.Integer(string='res partner before migration')
+
+    def test_db(self):
+        try:
+            connection = psycopg2.connect(user="odoo",
+                                          password="password",
+                                          host="localhost",
+                                          port="5432",
+                                          database="testdb")
+
+            cursor = connection.cursor()
+            # Print PostgreSQL Connection properties
+            print(connection.get_dsn_parameters(), "\n")
+
+            # Print PostgreSQL version
+            cursor.execute("SELECT version();")
+            record = cursor.fetchone()
+            print("You are connected to - ", record, "\n")
+
+            cursor.execute("Select * FROM hr_applicant LIMIT 0")
+            colnames = [desc[0] for desc in cursor.description]
+
+            query = '''SELECT * FROM hr_applicant LIMIT 1; '''
+            cursor.execute(query)
+            records_applicants = cursor.fetchall()
+            data = {}
+            for record in records_applicants:
+                data['old_id'] = record[0]
+                for i in range(1, len(colnames)):
+                    print(f'{colnames[i]}: {record[i]}')
+                    if colnames[i] == 'partner_id':
+                        # data['old_partner_id'] = int(colnames[i])
+                        # data['partner_id'] = '1'
+                        print('Test')
+                    else:
+                        data[colnames[i]] = record[i]
+
+            data.pop('message_last_post')
+            data.pop('title_action')
+            data.pop('date_action')
+            data.pop('reference')
+            data.pop('openupgrade_legacy_12_0_activity_date_deadline')
+            self.env['hr.applicant'].create(data)
+
+            # query = '''SELECT * FROM res_partner; '''
+            # cursor.execute(query)
+            # records_res = cursor.fetchall()
+            # print(len(records_res))
+
+        except (Exception, psycopg2.Error) as error:
+            print("Error while connecting to PostgreSQL", error)
+
+        finally:
+            # closing database connection.
+            if (connection):
+                cursor.close()
+                connection.close()
+                print("PostgreSQL connection is closed")
+
+        #applicants = self.env['hr.applicant'].sudo().search([])

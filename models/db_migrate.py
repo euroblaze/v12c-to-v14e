@@ -1,4 +1,5 @@
 from odoo import models, fields, api
+import xmlrpc.client
 import os
 import json
 import logging
@@ -64,14 +65,14 @@ class DbMigrate(models.Model):
 
 
 
-
+    #OVAA NAJPRVO KJE TREBA
     def applicant_db(self):
         try:
-            connection = psycopg2.connect(user="odoo",
-                                          password="password",
+            connection = psycopg2.connect(user="leon",
+                                          password="Janevski97@",
                                           host="172.17.0.1",
                                           port="5432",
-                                          database="v12cc")
+                                          database="v12cc-sabota")
 
             cursor = connection.cursor()
             # Print PostgreSQL Connection properties
@@ -124,8 +125,23 @@ class DbMigrate(models.Model):
                 data.pop('last_stage_id')
                 data.pop('medium_id')
                 data.pop('campaign_id')
-                self.env['hr.applicant'].create(data)
-
+                if data['partner_name']:
+                    applicant_name = data['partner_name'].strip()
+                    applicant_name = applicant_name.replace("  ", " ")
+                    exist = self.env['hr.applicant'].sudo().search([('partner_name', "ilike", applicant_name)])
+                    data['partner_name'] = applicant_name
+                    if exist:
+                        for e in exist:
+                            _logger.info(f"ime mu e {e.partner_name} , a old_id e {e.old_id}")
+                            e.write({
+                                'old_id' : data['old_id']
+                            })
+                            _logger.info("POSTOI")
+                    else:
+                        _logger.info(f"imeto e {data['partner_name']}")
+                        self.env['hr.applicant'].create(data)
+                _logger.info("\n")
+                _logger.info("\n")
 
         except (Exception, psycopg2.Error) as error:
             _logger.info(f"Error while connecting to PostgreSQL {error}")
@@ -136,6 +152,8 @@ class DbMigrate(models.Model):
                 cursor.close()
                 connection.close()
                 _logger.info("PostgreSQL connection is closed")
+
+    # I OVA KJE TREBA
     def update_hr_applicant_db(self):
         applicants = self.env['hr.applicant'].sudo().search([])
         jobs = self.env['hr.job'].sudo().search([])
@@ -146,32 +164,29 @@ class DbMigrate(models.Model):
 
         print(len(applicants))
         for applicant in applicants:
-            #for dep in departments:
-            #    if applicant.old_department_id == dep.old_id:
-            #        applicant.sudo().write({'department_id': dep.id})
-            #for user in users:
-            #    if applicant.old_user_id == user.old_id:
-            #        applicant.sudo().write({'user_id': user.id})
-            #for com in companies:
-            #    if applicant.old_company_id == com.old_id:
-            #        applicant.sudo().write({'company_id': com.id})
-            #for job in jobs:
-            #    if applicant.old_job_id == job.old_id:
-            #        applicant.sudo().write({'job_id': job.id})
-            #for stage in stages:
+            for dep in departments:
+               if applicant.old_department_id == dep.old_id and applicant.old_department_id > 1:
+                   applicant.sudo().write({'department_id': dep.id})
+            for user in users:
+               if applicant.old_user_id == user.old_id:
+                   applicant.sudo().write({'user_id': user.id})
+            for com in companies:
+               if applicant.old_company_id == com.old_id and applicant.old_company_id > 1:
+                   applicant.sudo().write({'company_id': com.id})
+            for job in jobs:
+               if applicant.old_job_id == job.old_id and applicant.old_job_id > 1 :
+                   applicant.sudo().write({'job_id': job.id})
+            # for stage in stages:
             #    if applicant.old_stage_id == stage.old_id:
             #        applicant.sudo().write({'stage_id': stage.id})
-            partners = self.env['res.partner'].sudo().search([('old_id', '=', applicant.old_partner_id)])
-            for partner in partners:
-                if applicant.old_partner_id == partner.old_id:
-                    applicant.sudo().write({'partner_id': partner.id})
+
     def applicant_language(self):
         try:
-            connection = psycopg2.connect(user="odoo",
-                                          password="password",
+            connection = psycopg2.connect(user="leon",
+                                          password="Janevski97@",
                                           host="172.17.0.1",
                                           port="5432",
-                                          database="v12cc")
+                                          database="v12cc-sabota")
 
             cursor = connection.cursor()
             # Print PostgreSQL Connection properties
@@ -261,11 +276,11 @@ class DbMigrate(models.Model):
                 _logger.info("PostgreSQL connection is closed")
     def applicant_education(self):
         try:
-            connection = psycopg2.connect(user="odoo",
-                                          password="password",
+            connection = psycopg2.connect(user="leon",
+                                          password="Janevski97@",
                                           host="172.17.0.1",
                                           port="5432",
-                                          database="v12cc")
+                                          database="v12cc-sabota")
 
             cursor = connection.cursor()
             # Print PostgreSQL Connection properties
@@ -308,11 +323,11 @@ class DbMigrate(models.Model):
                 _logger.info("PostgreSQL connection is closed")
     def applicant_category(self):
         try:
-            connection = psycopg2.connect(user="odoo",
-                                          password="password",
+            connection = psycopg2.connect(user="leon",
+                                          password="Janevski97@",
                                           host="172.17.0.1",
                                           port="5432",
-                                          database="v12cc")
+                                          database="v12cc-sabota")
 
             cursor = connection.cursor()
             # Print PostgreSQL Connection properties
@@ -340,6 +355,9 @@ class DbMigrate(models.Model):
                 for category in categories:
                     if category.name == data['name']:
                         flag += 1
+                        category.write({
+                            'old_id' : data['old_id'],
+                        })
                 if flag == 0:
                     print(data['name'])
                     self.env['hr.applicant.category'].sudo().create(data)
@@ -355,11 +373,11 @@ class DbMigrate(models.Model):
         applicants = self.env['hr.applicant'].sudo().search([])
         categories = self.env['hr.applicant.category'].sudo().search([])
         try:
-            connection = psycopg2.connect(user="odoo",
-                                          password="password",
+            connection = psycopg2.connect(user="leon",
+                                          password="Janevski97@",
                                           host="172.17.0.1",
                                           port="5432",
-                                          database="v12cc")
+                                          database="v12cc-sabota")
 
             cursor = connection.cursor()
             # Print PostgreSQL Connection properties
@@ -381,11 +399,14 @@ class DbMigrate(models.Model):
                                            password="odoo",
                                            host="172.19.0.2",
                                            port="5432",
-                                           database="odoo14_live")
+                                           database="najnovaDB-sabota")
 
             cursor1 = connection1.cursor()
             cursor1.execute("SELECT version();")
             record1 = cursor1.fetchone()
+            query = '''SELECT * FROM hr_applicant_hr_applicant_category_rel; '''
+            cursor1.execute(query)
+            records_in_relation = cursor1.fetchall()
             _logger.info(f"You are connected to - {connection1.get_dsn_parameters()}")
             for record in records_applicants:
                 data = {}
@@ -400,10 +421,12 @@ class DbMigrate(models.Model):
                                 data['hr_applicant_category_id'] = category.id
 
                 if 'hr_applicant_id' in data and 'hr_applicant_category_id' in data:
-                    query1 = f"INSERT INTO hr_applicant_hr_applicant_category_rel(hr_applicant_id, hr_applicant_category_id) VALUES({data['hr_applicant_id']},{data['hr_applicant_category_id']});"
-                    #print(query1)
-                    cursor1.execute(query1)
-                    connection1.commit()
+                    tuple = (data['hr_applicant_id'],data['hr_applicant_category_id'])
+                    if tuple not in records_in_relation:
+                        query1 = f"INSERT INTO hr_applicant_hr_applicant_category_rel(hr_applicant_id, hr_applicant_category_id) VALUES({data['hr_applicant_id']},{data['hr_applicant_category_id']});"
+                        #print(query1)
+                        cursor1.execute(query1)
+                        connection1.commit()
 
 
         except (Exception, psycopg2.Error) as error:
@@ -424,11 +447,11 @@ class DbMigrate(models.Model):
     # DONE
     def job_db(self):
         try:
-            connection = psycopg2.connect(user="odoo",
-                                          password="password",
+            connection = psycopg2.connect(user="leon",
+                                          password="Janevski97@",
                                           host="172.17.0.1",
                                           port="5432",
-                                          database="v12cc")
+                                          database="v12cc-sabota")
 
             cursor = connection.cursor()
             # Print PostgreSQL Connection properties
@@ -473,7 +496,13 @@ class DbMigrate(models.Model):
                     else:
                         data_job[colnames[i]] = job[i]
                 data_job.pop('message_last_post')
-                self.env['hr.job'].create(data_job)
+                job = self.env['hr.job'].sudo().search([('name', "ilike", data_job['name'])])
+                if job:
+                    job.write({
+                        'old_id' : data_job['old_id']
+                    })
+                    _logger.info("POSTOI VAKVA RABOTA")
+
 
         except (Exception, psycopg2.Error) as error:
             _logger.info(f"Error while connecting to PostgreSQL {error}")
@@ -566,7 +595,7 @@ class DbMigrate(models.Model):
                                           password="Janevski97@",
                                           host="172.17.0.1",
                                           port="5432",
-                                          database="v12cc")
+                                          database="v12cc-sabota")
 
             cursor = connection.cursor()
             # Print PostgreSQL Connection properties
@@ -645,9 +674,9 @@ class DbMigrate(models.Model):
                         })
                         break
 
-                if flag == 0:
-                    _logger.info('CREATE')
-                    self.env['res.partner'].create(data)
+                # if flag == 0:
+                #     _logger.info('CREATE')
+                #     self.env['res.partner'].create(data)
 
         except (Exception, psycopg2.Error) as error:
             _logger.info(f"Error while connecting to PostgreSQL: {error}")
@@ -672,12 +701,199 @@ class DbMigrate(models.Model):
                 if partner.old_company_id == com.old_id:
                     partner.write({'company_id': com.id})
 
+    def res_partner_messages(self):
+        try:
+            connection = psycopg2.connect(user="leon",
+                                          password="Janevski97@",
+                                          host="172.17.0.1",
+                                          port="5432",
+                                          database="v12cc-sabota")
+
+            cursor = connection.cursor()
+            # Print PostgreSQL Connection properties
+            print(connection.get_dsn_parameters(), "\n")
+
+            # Print PostgreSQL version
+            cursor.execute("SELECT version();")
+            record = cursor.fetchone()
+            _logger.info(f"You are connected to -  {record}")
+
+            cursor.execute("Select * FROM mail_message LIMIT 0")
+            colnames = [desc[0] for desc in cursor.description]
+            # print(colnames)
+            query = '''SELECT * FROM mail_message where model='res.partner'; '''
+            cursor.execute(query)
+            records_applicants = cursor.fetchall()
+            # partners = self.env['res.partner'].sudo().search([])
+            users = self.env['res.users'].sudo().search([])
+            for record in records_applicants:
+                data = {}
+                data['old_id'] = record[0]
+                for i in range(1, len(colnames)):
+                    if colnames[i] == 'parent_id':
+                        data['old_parent_id'] = record[i]
+                    elif colnames[i] == 'author_id':
+                        partner = self.env['res.partner'].sudo().search([('old_id','=',record[i])])
+                        if partner:
+                            for p in partner:
+                                data['author_id'] = p.id
+                                break
+                        # for partner in partners:
+                        #     if record[i] == partner.old_id:
+                        #         data['author_id'] = partner.id
+                    # elif colnames[i] == 'child_ids':
+                    #     data['old_child_ids'] = record[i]
+                    elif colnames[i] == 'moderator_id':
+                        for user in users:
+                            if record[i] == user.old_id:
+                                data['moderator_id'] = user.id
+                    # elif colnames[i] == 'notified_partner_ids':
+                    #     for partner in partners:
+                    #         if record[i] == partner.old_id:
+                    #             data['notified_partner_ids'] = partner.id
+                    # elif colnames[i] == 'partner_ids':
+                    #     for partner in partners:
+                    #         if record[i] == partner.old_id:
+                    #             data['partner_ids'] = [partner.id]
+                    elif colnames[i] == 'subtype_id':
+                        data['old_subtype_id'] = record[i]
+                    elif colnames[i] == 'res_id':
+                        data['old_res_id'] = record[i]
+                    else:
+                        data[colnames[i]] = record[i]
+                data.pop('layout')
+                data.pop('website_published')
+                data.pop('sent_mobile')
+                data.pop('mail_activity_type_id')
+                data.pop('mail_server_id')
+                #for pair in data.items():
+                #    print(pair)
+                messages = self.env['mail.message'].sudo().search([('old_id','=',data['old_id'])])
+                if messages:
+                    for message in messages:
+                        if data['old_id'] == message.old_id:
+                            _logger.info('WRITE')
+                            # hr_applicant_query = f'''SELECT partner_name FROM hr_applicant where id={data['old_res_id']}; '''
+                            # cursor.execute(hr_applicant_query)
+                            # record_applicant_name = cursor.fetchall()
+                            # for name in record_applicant_name:
+                            #     applicant_name = name[0].strip()
+                            #     applicant_name = applicant_name.replace("  ", " ")
+                            #     _logger.info({applicant_name})
+                            #     break
+                            new_partner_id = self.env['res.partner'].sudo().search([('old_id', '=', data['old_res_id'])])
+                            for new_id in new_partner_id:
+                                _logger.info({new_id.id})
+                                message.write({'res_id': new_id.id})
+                                break
+                else:
+                    _logger.info('CREATE')
+                    # hr_applicant_query = f'''SELECT partner_name FROM hr_applicant where id={data['old_res_id']}; '''
+                    # cursor.execute(hr_applicant_query)
+                    # record_applicant_name = cursor.fetchall()
+                    # _logger.info(f'{data["old_res_id"]}')
+                    # for name in record_applicant_name:
+                    #     _logger.info(f"{name[0]}")
+                    #     applicant_name = name[0].strip()
+                    #     applicant_name = applicant_name.replace("  ", " ")
+                    #     break
+                    # _logger.info(f'{applicant_name}')
+                    new_partner_id = self.env['res.partner'].sudo().search([('old_id','=',data['old_res_id'])])
+                    for new_id in new_partner_id:
+                        _logger.info(f'{new_id.id}')
+                        data['res_id'] = new_id.id
+                        break
+                    self.env['mail.message'].sudo().create(data)
+
+        except (Exception, psycopg2.Error) as error:
+            _logger.info(f"Error while connecting to PostgreSQL {error}")
+
+        finally:
+            # closing database connection.
+            if (connection):
+                cursor.close()
+                connection.close()
+                _logger.info("PostgreSQL connection is closed")
+
+    def res_partner_attachemnts(self):
+        try:
+            _logger.info("ATTACHMENTS MIGRATE")
+            connection = psycopg2.connect(user="leon",
+                                          password="Janevski97@",
+                                          host="172.17.0.1",
+                                          port="5432",
+                                          database="v12cc-sabota")
+
+            cursor = connection.cursor()
+            # Print PostgreSQL Connection properties
+            print(connection.get_dsn_parameters(), "\n")
+
+            # Print PostgreSQL version
+            cursor.execute("SELECT version();")
+            record = cursor.fetchone()
+            _logger.info(f"You are connected to -  {record}")
+
+            cursor.execute("Select * FROM ir_attachment LIMIT 0")
+            colnames = [desc[0] for desc in cursor.description]
+            # print(colnames)
+            query = '''SELECT * FROM ir_attachment where res_model='res.partner'; '''
+            cursor.execute(query)
+            attachments = cursor.fetchall()
+            for record in attachments:
+                data = {}
+                data['old_id'] = record[0]
+                for i in range(1, len(colnames)):
+                    if colnames[i] == 'company_id':
+                        companies = self.env['res.company'].sudo().search([('old_id', '=', record[i])])
+                        if companies:
+                            for company in companies:
+                                data['company_id'] = company.id
+                    elif colnames[i] == 'create_uid':
+                        users = self.env['res.users'].sudo().search([('old_id', '=', record[i])])
+                        if users:
+                            for user in users:
+                                data['create_uid'] = user.id
+                    elif colnames[i] == 'write_uid':
+                        users = self.env['res.users'].sudo().search([('old_id', '=', record[i])])
+                        if users:
+                            for user in users:
+                                data['create_uid'] = user.id
+                    elif colnames[i] == 'res_id':
+                        partners = self.env['res.partner'].sudo().search([('old_id', '=', record[i])])
+                        _logger.info(f"{partners}")
+                        if partners:
+                            for partner in partners:
+                                data['res_id'] = partner.id
+                    else:
+                        data[colnames[i]] = record[i]
+
+                _logger.info(f"{data}")
+                data.pop('old_id')
+                data.pop('datas_fname')
+                data.pop('openupgrade_legacy_11_0_priority')
+                data.pop('res_model_name')
+                data.pop('active')
+                data.pop('activity_data')
+                data.pop('website_id')
+                self.env['ir.attachment'].sudo().create(data)
+                _logger.info("\n")
+                _logger.info("\n")
+
+        except (Exception, psycopg2.Error) as error:
+            _logger.info(f"Error while connecting to PostgreSQL {error}")
+
+        finally:
+            # closing database connection.
+            if (connection):
+                cursor.close()
+                connection.close()
+                _logger.info("PostgreSQL connection is closed")
 
     #DONE
     def res_user_db(self):
         try:
-            connection = psycopg2.connect(user="odoo",
-                                          password="password",
+            connection = psycopg2.connect(user="leon",
+                                          password="Janevski97@",
                                           host="172.17.0.1",
                                           port="5432",
                                           database="v12cc")
@@ -702,7 +918,9 @@ class DbMigrate(models.Model):
                 data_job['old_id'] = job[0]
                 for i in range(1, len(colnames)):
                     if colnames[i] == 'partner_id':
-                        data_job['old_partner_id'] = job[i]
+                        partner = self.env['res.partner'].sudo().search([('old_id','=',job[i])])
+                        for p in partner:
+                            data_job['partner_id'] = p.id
                         # data_job['partner_id'] = 1
                     elif colnames[i] == 'company_id':
                         data_job['old_company_id'] = job[i]
@@ -751,6 +969,8 @@ class DbMigrate(models.Model):
                 cursor.close()
                 connection.close()
                 print("PostgreSQL connection is closed")
+
+
     def update_res_user_db(self):
         users = self.env['res.users'].search([])
         companies = self.env['res.company'].search([])
@@ -765,11 +985,11 @@ class DbMigrate(models.Model):
     # DONE
     def stage_db(self):
         try:
-            connection = psycopg2.connect(user="odoo",
-                                          password="password",
+            connection = psycopg2.connect(user="leon",
+                                          password="Janevski97@",
                                           host="172.17.0.1",
                                           port="5432",
-                                          database="v12cc")
+                                          database="v12cc-sabota")
 
             cursor = connection.cursor()
             # Print PostgreSQL Connection properties
@@ -797,7 +1017,13 @@ class DbMigrate(models.Model):
                                 data['job_ids'] = [job.id]
                     else:
                         data[colnames[i]] = record[i]
-                self.env['hr.recruitment.stage'].create(data)
+                #self.env['hr.recruitment.stage'].create(data)
+                stage = self.env['hr.recruitment.stage'].sudo().search([('name','ilike',data['name'])])
+                if stage:
+                    stage.write({
+                        'old_id' : data['old_id']
+                    })
+                    _logger.info("postoi")
 
         except (Exception, psycopg2.Error) as error:
             _logger.info(f"Error while connecting to PostgreSQL {error}")
@@ -822,11 +1048,11 @@ class DbMigrate(models.Model):
     #DONE
     def department_db(self):
         try:
-            connection = psycopg2.connect(user="odoo",
-                                          password="password",
+            connection = psycopg2.connect(user="leon",
+                                          password="Janevski97@",
                                           host="172.17.0.1",
                                           port="5432",
-                                          database="v12cc")
+                                          database="v12cc-sabota")
 
             cursor = connection.cursor()
             # Print PostgreSQL Connection properties
@@ -864,9 +1090,9 @@ class DbMigrate(models.Model):
                     if department.name == data['name']:
                         department.write({'old_id': data['old_id']})
                         flag += 1
-                if flag == 0:
-                    _logger.info(f"Department name: {data['name']}")
-                    self.env['hr.department'].create(data)
+                # if flag == 0:
+                #     _logger.info(f"Department name: {data['name']}")
+                #     self.env['hr.department'].create(data)
 
         except (Exception, psycopg2.Error) as error:
             print("Error while connecting to PostgreSQL", error)
@@ -1003,11 +1229,11 @@ class DbMigrate(models.Model):
     # DONE
     def employee_db(self):
         try:
-            connection = psycopg2.connect(user="odoo",
-                                          password="password",
+            connection = psycopg2.connect(user="leon",
+                                          password="Janevski97@",
                                           host="172.17.0.1",
                                           port="5432",
-                                          database="v12cc")
+                                          database="v12cc-sabota")
 
             cursor = connection.cursor()
             # Print PostgreSQL Connection properties
@@ -1081,9 +1307,9 @@ class DbMigrate(models.Model):
                     if employee.name == data['name']:
                         employee.write({'old_id': data['old_id']})
                         flag += 1
-                if flag == 0:
-                    _logger.info(f"{data['name']}")
-                    self.env['hr.employee'].sudo().create(data)
+                # if flag == 0:
+                #     _logger.info(f"{data['name']}")
+                #     self.env['hr.employee'].sudo().create(data)
 
         except (Exception, psycopg2.Error) as error:
             _logger.info(f"Error while connecting to PostgreSQL {error}")
@@ -1157,7 +1383,7 @@ class DbMigrate(models.Model):
                                           password="Janevski97@",
                                           host="172.17.0.1",
                                           port="5432",
-                                          database="v12cc")
+                                          database="v12cc-sabota")
 
             cursor = connection.cursor()
             # Print PostgreSQL Connection properties
@@ -1174,7 +1400,7 @@ class DbMigrate(models.Model):
             query = '''SELECT * FROM mail_message where model='hr.applicant'; '''
             cursor.execute(query)
             records_applicants = cursor.fetchall()
-            partners = self.env['res.partner'].sudo().search([])
+            # partners = self.env['res.partner'].sudo().search([])
             users = self.env['res.users'].sudo().search([])
             for record in records_applicants:
                 data = {}
@@ -1183,9 +1409,14 @@ class DbMigrate(models.Model):
                     if colnames[i] == 'parent_id':
                         data['old_parent_id'] = record[i]
                     elif colnames[i] == 'author_id':
-                        for partner in partners:
-                            if record[i] == partner.old_id:
-                                data['author_id'] = partner.id
+                        partner = self.env['res.partner'].sudo().search([('old_id','=',record[i])])
+                        if partner:
+                            for p in partner:
+                                data['author_id'] = p.id
+                                break
+                        # for partner in partners:
+                        #     if record[i] == partner.old_id:
+                        #         data['author_id'] = partner.id
                     # elif colnames[i] == 'child_ids':
                     #     data['old_child_ids'] = record[i]
                     elif colnames[i] == 'moderator_id':
@@ -1217,19 +1448,19 @@ class DbMigrate(models.Model):
                     if data['old_id'] == message.old_id:
                         _logger.info('WRITE')
                         flag += 1
-                        hr_applicant_query = f'''SELECT partner_name FROM hr_applicant where id={data['old_res_id']}; '''
-                        cursor.execute(hr_applicant_query)
-                        record_applicant_name = cursor.fetchall()
-                        for name in record_applicant_name:
-                            applicant_name = name[0].strip()
-                            applicant_name = applicant_name.replace("  ", " ")
-                            _logger.info({applicant_name})
-                            break
-                        new_applicant_entry = self.env['hr.applicant'].sudo().search([('partner_name', 'ilike', applicant_name)])
-                        for new_id in new_applicant_entry:
-                            _logger.info({new_id.id})
-                            message.write({'res_id': new_id.id})
-                            break
+                        # hr_applicant_query = f'''SELECT partner_name FROM hr_applicant where id={data['old_res_id']}; '''
+                        # cursor.execute(hr_applicant_query)
+                        # record_applicant_name = cursor.fetchall()
+                        # for name in record_applicant_name:
+                        #     applicant_name = name[0].strip()
+                        #     applicant_name = applicant_name.replace("  ", " ")
+                        #     _logger.info({applicant_name})
+                        #     break
+                        # new_applicant_entry = self.env['hr.applicant'].sudo().search([('partner_name', 'ilike', applicant_name)])
+                        # for new_id in new_applicant_entry:
+                        #     _logger.info({new_id.id})
+                        #     message.write({'res_id': new_id.id})
+                        #     break
                 if flag == 0:
                     _logger.info('CREATE')
                     hr_applicant_query = f'''SELECT partner_name FROM hr_applicant where id={data['old_res_id']}; '''
@@ -1309,7 +1540,7 @@ class DbMigrate(models.Model):
                                           password="odoo",
                                           host="172.19.0.2",
                                           port="5432",
-                                          database="test3-db-najnovo")
+                                          database="najnovaDB-sabota")
 
             cursor = connection.cursor()
             # Print PostgreSQL Connection properties
@@ -1371,7 +1602,7 @@ class DbMigrate(models.Model):
                                           password="Janevski97@",
                                           host="172.17.0.1",
                                           port="5432",
-                                          database="v12cc")
+                                          database="v12cc-sabota")
 
             cursor = connection.cursor()
             # Print PostgreSQL Connection properties
@@ -1421,9 +1652,313 @@ class DbMigrate(models.Model):
                 _logger.info(f'novoto subtype_id {subtype.id}')
                 message.write({'subtype_id':subtype.id})
 
+    def delete_all_followers_for_hr_applicants_messages(self):
+        _logger.info("DELETE ALL FOLLOWRS FOR HR APPLICANT MESSAGES")
+        followers = self.env['mail.followers'].sudo().search([('res_model','=','hr.applicant')])
+        for follower in followers:
+            follower.unlink()
+
+    #UPDATE OLD ID FOR HR APPLiCANTS
+    def update_old_id_on_hr_applicants(self):
+        try:
+            _logger.info("HR APPLICANTS OLD_ID UPDATE")
+            connection = psycopg2.connect(user="leon",
+                                          password="Janevski97@",
+                                          host="172.17.0.1",
+                                          port="5432",
+                                          database="v12cc")
+
+            cursor = connection.cursor()
+            # Print PostgreSQL Connection properties
+            print(connection.get_dsn_parameters(), "\n")
+
+            # Print PostgreSQL version
+            cursor.execute("SELECT version();")
+            record = cursor.fetchone()
+            _logger.info(f"You are connected to -  {record}")
+
+            cursor.execute("Select * FROM hr_applicant LIMIT 0")
+            colnames = [desc[0] for desc in cursor.description]
+            query = '''SELECT * FROM hr_applicant; '''
+            cursor.execute(query)
+            records_applicants = cursor.fetchall()
+            for record in records_applicants:
+                data = {}
+                data['old_id'] = record[0]
+                for i in range(1, len(colnames)):
+                    if colnames[i] == 'partner_name':
+                        _logger.info(f"partner_name = {record[i]}")
+                        data['partner_name'] = record[i]
+                    elif colnames[i] == 'email_from':
+                        _logger.info(f"email_from = {record[i]}")
+                        data['email_from'] = record[i]
+                applicants = self.env['hr.applicant'].sudo().search([('partner_name','=',data['partner_name'])])
+                if applicants:
+                    for applicant in applicants:
+                        applicant.write({
+                            'old_id' : data['old_id']
+                        })
+                        _logger.info(f"applicant name e {applicant.partner_name}, a id {applicant.id}")
+
+                _logger.info("\n")
+                _logger.info("\n")
 
 
-    def crm_migrate_db(self):
+        except (Exception, psycopg2.Error) as error:
+            _logger.info(f"Error while connecting to PostgreSQL {error}")
+
+        finally:
+            # closing database connection.
+            if (connection):
+                cursor.close()
+                connection.close()
+                _logger.info("PostgreSQL connection is closed")
+
+    #FOLLOWERS MIGRATE AND UPDATE FOR HR.APPLICANT
+    def followers_update_for_applicant_messages(self):
+        try:
+            _logger.info("FOLLOWERS UPDATE")
+            connection = psycopg2.connect(user="leon",
+                                          password="Janevski97@",
+                                          host="172.17.0.1",
+                                          port="5432",
+                                          database="v12cc-sabota")
+
+            cursor = connection.cursor()
+            # Print PostgreSQL Connection properties
+            print(connection.get_dsn_parameters(), "\n")
+
+            # Print PostgreSQL version
+            cursor.execute("SELECT version();")
+            record = cursor.fetchone()
+            _logger.info(f"You are connected to -  {record}")
+
+            cursor.execute("Select * FROM mail_followers LIMIT 0")
+            colnames = [desc[0] for desc in cursor.description]
+            # print(colnames)
+            query = '''SELECT * FROM mail_followers where res_model='hr.applicant'; '''
+            cursor.execute(query)
+            records_followers = cursor.fetchall()
+            for record in records_followers:
+                data={}
+                for i in range(1, len(colnames)):
+                    if colnames[i] == 'partner_id':
+                        partners = self.env['res.partner'].sudo().search([('old_id','=',record[i])])
+                        if partners:
+                            for partner in partners:
+                                _logger.info(f"partner id e {partner.id}, a ime mu e {partner.name}")
+                                data['partner_id'] = partner.id
+                                break
+                    elif colnames[i] == 'res_model':
+                        data['res_model'] = record[i]
+                    elif colnames[i] == 'res_id':
+                        _logger.info(f"res_id = old_id {record[i]}")
+                        applicants = self.env['hr.applicant'].sudo().search([('old_id','=',record[i])])
+                        _logger.info(f"{applicants}")
+                        if applicants:
+                            for applicant in applicants:
+                                _logger.info(f"applicant id e {applicant.id}, a ime mu e {applicant.partner_name}")
+                                data['res_id'] = applicant.id
+                                break
+                    else:
+                        data[colnames[i]] = record[i]
+
+                #DA SE KREIRA
+                _logger.info(f"{data}")
+                if 'partner_id' in data:
+                    _logger.info("ima partner_id")
+                    self.env['mail.followers'].sudo().create(data)
+                _logger.info("\n")
+                _logger.info("\n")
+
+
+        except (Exception, psycopg2.Error) as error:
+            _logger.info(f"Error while connecting to PostgreSQL {error}")
+
+        finally:
+            # closing database connection.
+            if (connection):
+                cursor.close()
+                connection.close()
+                _logger.info("PostgreSQL connection is closed")
+
+    #ATTACHMENTS FOR APPLICANTS
+    def attachments_for_applicants(self):
+        try:
+            _logger.info("ATTACHMENTS MIGRATE")
+            connection = psycopg2.connect(user="leon",
+                                          password="Janevski97@",
+                                          host="172.17.0.1",
+                                          port="5432",
+                                          database="v12cc-sabota")
+
+            cursor = connection.cursor()
+            # Print PostgreSQL Connection properties
+            print(connection.get_dsn_parameters(), "\n")
+
+            # Print PostgreSQL version
+            cursor.execute("SELECT version();")
+            record = cursor.fetchone()
+            _logger.info(f"You are connected to -  {record}")
+
+            cursor.execute("Select * FROM ir_attachment LIMIT 0")
+            colnames = [desc[0] for desc in cursor.description]
+            # print(colnames)
+            query = '''SELECT * FROM ir_attachment where res_model='hr.applicant'; '''
+            cursor.execute(query)
+            attachments = cursor.fetchall()
+            for record in attachments:
+                data = {}
+                data['old_id'] = record[0]
+                for i in range(1, len(colnames)):
+                    if colnames[i] == 'company_id':
+                        companies = self.env['res.company'].sudo().search([('old_id','=',record[i])])
+                        if companies:
+                            for company in companies:
+                                data['company_id'] = company.id
+                    elif colnames[i] == 'create_uid':
+                        users = self.env['res.users'].sudo().search([('old_id','=',record[i])])
+                        if users:
+                            for user in users:
+                                data['create_uid'] = user.id
+                    elif colnames[i] == 'write_uid':
+                        users = self.env['res.users'].sudo().search([('old_id', '=', record[i])])
+                        if users:
+                            for user in users:
+                                data['create_uid'] = user.id
+                    elif colnames[i] == 'res_id':
+                        applicants = self.env['hr.applicant'].sudo().search([('old_id', '=', record[i])])
+                        _logger.info(f"{applicants}")
+                        if applicants:
+                            for applicant in applicants:
+                                data['res_id'] = applicant.id
+                    else:
+                        data[colnames[i]] = record[i]
+
+                _logger.info(f"{data}")
+                data.pop('old_id')
+                data.pop('datas_fname')
+                data.pop('openupgrade_legacy_11_0_priority')
+                data.pop('res_model_name')
+                data.pop('active')
+                data.pop('activity_data')
+                data.pop('website_id')
+                self.env['ir.attachment'].sudo().create(data)
+                _logger.info("\n")
+                _logger.info("\n")
+                        
+        except (Exception, psycopg2.Error) as error:
+            _logger.info(f"Error while connecting to PostgreSQL {error}")
+
+        finally:
+            # closing database connection.
+            if (connection):
+                cursor.close()
+                connection.close()
+                _logger.info("PostgreSQL connection is closed")
+
+    #CREATE_DATE and USER_ID UPDATE
+    def update_create_date_hr_applicant(self):
+        try:
+            _logger.info("UPDATE CREATE_DATE and USER_ID HR APPLICANT")
+            connection = psycopg2.connect(user="leon",
+                                          password="Janevski97@",
+                                          host="172.17.0.1",
+                                          port="5432",
+                                          database="v12cc-sabota")
+
+            cursor = connection.cursor()
+            # Print PostgreSQL Connection properties
+            print(connection.get_dsn_parameters(), "\n")
+
+            # Print PostgreSQL version
+            cursor.execute("SELECT version();")
+            record = cursor.fetchone()
+
+            query = '''SELECT id,create_date,user_id FROM hr_applicant; '''
+            cursor.execute(query)
+            records_applicants = cursor.fetchall()
+            for record in records_applicants:
+                _logger.info(f"rekordot e {record}")
+                applicant = self.env['hr.applicant'].sudo().search([('old_id', '=', record[0])])
+                _logger.info(f"aplikantot e {applicant}")
+                if applicant:
+                    users = self.env['res.users'].sudo().search([('old_id', '=', record[2])])
+                    _logger.info(f"userot e {users}")
+                    for ap in applicant:
+                        if users:
+                            for u in users:
+                                _logger.info(f"loginot e {u.login}")
+                                ap.write({
+                                    'create_date' : record[1],
+                                    'user_id' : u.id
+                                })
+                                break
+                        else:
+                            _logger.info(f"applikantot e {ap}")
+                            ap.write({
+                                'create_date': record[1],
+                            })
+                        break
+                _logger.info("\n")
+                _logger.info("\n")
+
+
+        except (Exception, psycopg2.Error) as error:
+            _logger.info(f"Error while connecting to PostgreSQL {error}")
+
+        finally:
+            # closing database connection.
+            if (connection):
+                cursor.close()
+                connection.close()
+                _logger.info("PostgreSQL connection is closed")
+
+    def res_user_update_old_id(self):
+        try:
+            _logger.info("USERS UPDATE")
+            connection = psycopg2.connect(user="leon",
+                                          password="Janevski97@",
+                                          host="172.17.0.1",
+                                          port="5432",
+                                          database="v12cc")
+
+            cursor = connection.cursor()
+            # Print PostgreSQL Connection properties
+            print(connection.get_dsn_parameters(), "\n")
+
+            # Print PostgreSQL version
+            cursor.execute("SELECT version();")
+            record = cursor.fetchone()
+            _logger.info(f"You are connected to -  {record}")
+            cursor.execute("Select * FROM res_users LIMIT 0")
+            colnames = [desc[0] for desc in cursor.description]
+            query = '''SELECT id,login FROM res_users; '''
+            cursor.execute(query)
+            records_users = cursor.fetchall()
+            for record in records_users:
+                _logger.info(f"{record}")
+                user =  self.env['res.users'].sudo().search([('login', '=', record[1]),'|',
+                                            ('active','=',False),('active','=',True)])
+                _logger.info(f"login na userot {user.login}, a id {user.id}")
+                # user.write({
+                #     'old_id' : record[0]
+                # })
+                _logger.info('\n')
+                _logger.info('\n')
+
+        except (Exception, psycopg2.Error) as error:
+            _logger.info(f"Error while connecting to PostgreSQL {error}")
+
+        finally:
+            # closing database connection.
+            if (connection):
+                cursor.close()
+                connection.close()
+                _logger.info("PostgreSQL connection is closed")
+
+
+    def crm_lead_migrate_db(self):
         try:
             _logger.info("CRM MIGRATE")
             connection = psycopg2.connect(user="leon",
@@ -2003,6 +2538,75 @@ class DbMigrate(models.Model):
                 'country_id': country.id
             })
 
+
+    #CRM USER_ID DA UPDATNES
+    def crm_lead_user_update(self):
+        try:
+            _logger.info("CRM LEAD USER UPDATE")
+            connection = psycopg2.connect(user="leon",
+                                          password="Janevski97@",
+                                          host="172.17.0.1",
+                                          port="5432",
+                                          database="v12cc")
+
+            cursor = connection.cursor()
+            # Print PostgreSQL Connection properties
+            print(connection.get_dsn_parameters(), "\n")
+
+            # Print PostgreSQL version
+            cursor.execute("SELECT version();")
+            record = cursor.fetchone()
+            _logger.info(f"You are connected to -  {record}")
+            cursor.execute("Select * FROM crm_lead LIMIT 0")
+            colnames = [desc[0] for desc in cursor.description]
+            query = '''SELECT id,user_id FROM crm_lead; '''
+            cursor.execute(query)
+            records_crm = cursor.fetchall()
+            for record in records_crm:
+                _logger.info(f"old id = {record[0]}, a user_id = {record[1]}")
+                crm_lead = self.env['crm.lead'].sudo().search([('old_id', '=', record[0])])
+                _logger.info(f"crm_lead old_id {crm_lead.old_id}")
+                users = self.env['res.users'].sudo().search([('old_id', '=', record[1])])
+                if users:
+                    for user in users:
+                        _logger.info(f"user id {user.old_id}")
+                        crm_lead.write({
+                            'user_id' : user.id
+                        })
+                _logger.info("\n")
+                _logger.info("\n")
+
+            
+        except (Exception, psycopg2.Error) as error:
+            _logger.info(f"Error while connecting to PostgreSQL {error}")
+
+        finally:
+            # closing database connection.
+            if (connection):
+                cursor.close()
+                connection.close()
+                _logger.info("PostgreSQL connection is closed")
+
+    #CRM PORAKITE SE OVA
+    def crm_message_update(self):
+        _logger.info("CRM MESSAGE UPDATE")
+        crm_messages = self.env['mail.message'].sudo().search([('model', '=', 'crm.lead')])
+        for crm_message in crm_messages:
+            _logger.info(f"res_id = {crm_message.res_id}")
+            crm_lead = self.env['crm.lead'].sudo().search([('id', '=', crm_message.res_id)])
+            _logger.info(f"crm_lead id = {crm_lead.id}")
+            _logger.info(f"userot e so id {crm_lead.user_id.id}")
+            _logger.info(f"partnerot e so id {crm_lead.user_id.partner_id.id}")
+            partner = self.env['res.partner'].sudo().search([('id', '=', crm_lead.user_id.partner_id.id)])
+            _logger.info(f"partnerot e so id {partner.id} i ime {partner.name}")
+            if partner:
+                crm_message.write({
+                    'author_id' : partner.id
+                })
+            _logger.info("\n")
+            _logger.info("\n")
+
+
     def message_author_update_by_name(self):
         try:
             _logger.info("UPDATE MESSAGE AUTHOR ")
@@ -2064,7 +2668,7 @@ class DbMigrate(models.Model):
                 connection.close()
                 _logger.info("PostgreSQL connection is closed")
 
-
+    #AVTORITE NA PORAKITE
     def message_author_update_by_old_id(self):
         try:
             _logger.info("UPDATE MESSAGE AUTHOR ")
@@ -2166,7 +2770,7 @@ class DbMigrate(models.Model):
                                           password="Janevski97@",
                                           host="172.17.0.1",
                                           port="5432",
-                                          database="v12cc")
+                                          database="v12cc-sabota")
 
             cursor = connection.cursor()
             # Print PostgreSQL Connection properties
@@ -2265,6 +2869,161 @@ class DbMigrate(models.Model):
                 connection.close()
                 _logger.info("PostgreSQL connection is closed")
 
+    def cron_contacts_update(self):
+        _logger.info("CRON FUNCTION")
+        url = 'https://erp.simplify-erp.com'
+        db = 'v12cc'
+        username = 'm95@simplify-erp.com'
+        password = 'leon'
+        common = xmlrpc.client.ServerProxy('{}/xmlrpc/2/common'.format(url))
+        _logger.info(f"verzijata e {common.version()}")
+        uid = common.authenticate(db, username, password, {})
+        models = xmlrpc.client.ServerProxy('{}/xmlrpc/2/object'.format(url))
+        models.execute_kw(db, uid, password,
+                          'res.partner', 'check_access_rights',
+                          ['read'], {'raise_exception': False})
+        today = datetime.datetime.today()
+        _logger.info(f"denesen datum {today}")
+        DD = datetime.timedelta(days=20)
+        earlier = today - DD
+        _logger.info(f"2 nedeli predhodno {earlier}")
+        records_create = models.execute_kw(db, uid, password,
+                          'res.partner', 'search',
+                          [[['create_date', '>', earlier] , ['create_date','<',today]]])
+        records_update = models.execute_kw(db, uid, password,
+                          'res.partner', 'search',
+                          [[['write_date', '>', earlier] , ['write_date','<',today]]])
+        # _logger.info(f"novokreirani records se {len(records_create)}")
+        # _logger.info("\n")
+        # _logger.info("\n")
+        # _logger.info(f"updatirani records se {len(records_update)}")
+        all_ids = records_create+records_update
+        # _logger.info("\n")
+        # _logger.info("\n")
+        # _logger.info(f"site records se {all_ids}")
+
+        for id in all_ids:
+            [record] = models.execute_kw(db, uid, password,
+                                              'res.partner', 'read', [id], {
+                                                  'fields': ['firstname', 'lastname', 'company_id', 'phone', 'mobile',
+                                                             'email', 'website','x_leadsource','function','parent_id','create_date','write_date']})
+            company = self.env['res.company'].sudo().search([('old_id', '=', record['company_id'][0])])
+            partner = self.env['res.partner'].sudo().search([('old_id', '=', record['id'])])
+            data={}
+            _logger.info(f"{record}")
+            for rec in record:
+                if rec == 'company_id':
+                    if company:
+                        for c in company:
+                            data[rec] = c.id
+                else:
+                    data[rec] = record[rec]
+            if type(record['firstname']) is str and type(record['lastname']) is str:
+                data['name'] = record['firstname'] + " " + record['lastname']
+            elif type(record['firstname']) is str:
+                data['name'] = record['firstname']
+            else:
+                data['name'] = record['lastname']
+            if partner:
+                _logger.info("update")
+                data.pop("parent_id")
+                data.pop('company_id')
+                data.pop("id")
+                _logger.info(f"{data}")
+                partner.write(data)
+            else:
+                _logger.info("create")
+                data['old_id'] = data['id']
+                if data["parent_id"] != False:
+                    _logger.info(f"{record['parent_id']}")
+                    parent = self.env['res.partner'].sudo().search([('old_id', '=', record['parent_id'][0])])
+                    data['parent_id'] = parent.id
+                data.pop('id')
+                data.pop('x_leadsource')
+                data.pop('create_date')
+                data.pop('write_date')
+                data.pop('company_id')
+                _logger.info(f"{data}")
+                nov_partner=self.env['res.partner'].sudo().create(data)
+                _logger.info(f"{nov_partner}")
+
+            _logger.info("\n")
+            _logger.info("\n")
+        _logger.info("KRAAAAAAAJ")
+    #PRASAJ GO SINISHA
+    def res_user_migrate_db(self):
+        try:
+            _logger.info("USERS-MIGRATE/UPDATE")
+            connection = psycopg2.connect(user="leon",
+                                          password="Janevski97@",
+                                          host="172.17.0.1",
+                                          port="5432",
+                                          database="v12cc-sabota")
+
+            cursor = connection.cursor()
+            # Print PostgreSQL Connection properties
+            print(connection.get_dsn_parameters(), "\n")
+
+            # Print PostgreSQL version
+            cursor.execute("SELECT version();")
+            record = cursor.fetchone()
+            _logger.info(f"You are connected to -  {record}")
+            cursor.execute("Select * FROM res_users LIMIT 0")
+            colnames = [desc[0] for desc in cursor.description]
+            query = f'''SELECT * FROM res_users; '''
+            cursor.execute(query)
+            old_users = cursor.fetchall()
+            for record in old_users:
+                _logger.info(f"{record}")
+                data={}
+                data['old_id'] = record[0]
+                for i in range(1, len(colnames)):
+                    if colnames[i] == 'login':
+                        data['login'] = record[i]
+                #     elif colnames[i] == 'company_id':
+                #         companies = self.env['res.company'].sudo().search([('old_id', '=', record[i])])
+                #         for company in companies:
+                #             data['company_id'] = company.id
+                #             break
+                #     elif colnames[i] == 'partner_id':
+                #         partners = self.env['res.partner'].sudo().search([('old_id', '=', record[i]), '|',
+                #                                                ('active', '=', False), ('active', '=', True)])
+                #         for partner in partners:
+                #             data['partner_id'] = partner.id
+                #             break
+                #     else:
+                #         data[colnames[i]] = record[i]
+                # data.pop('alias_id')
+                # data.pop('timesheet_notify')
+                # data.pop('sale_team_id')
+                # data.pop('google_calendar_token_validity')
+                # data.pop('google_calendar_cal_id')
+                # data.pop('google_calendar_rtoken')
+                # data.pop('google_calendar_last_sync_date')
+                # data.pop('google_calendar_token')
+                # data.pop('company_id')
+                users = self.env['res.users'].sudo().search([('login', '=', data['login']), '|',
+                                                               ('active', '=', False), ('active', '=', True)])
+                if users:
+                    for user in users:
+                        _logger.info("UPDATE")
+                        user.write(data)
+                        break
+                _logger.info("\n")
+                _logger.info("\n")
+
+
+
+        except (Exception, psycopg2.Error) as error:
+            _logger.info(f"Error while connecting to PostgreSQL {error}")
+
+        finally:
+            # closing database connection.
+            if (connection):
+                cursor.close()
+                connection.close()
+                _logger.info("PostgreSQL connection is closed")
+
     #OVA TREBA DA GO NAPRAIS
     def sale_order_migrate(self):
         try:
@@ -2349,42 +3108,6 @@ class DbMigrate(models.Model):
                 connection.close()
                 _logger.info("PostgreSQL connection is closed")
 
-    def res_partner_proba(self):
-        try:
-            _logger.info("RES-PARTNER PROBA")
-            connection = psycopg2.connect(user="leon",
-                                          password="Janevski97@",
-                                          host="172.17.0.1",
-                                          port="5432",
-                                          database="v12cc")
-
-            cursor = connection.cursor()
-            # Print PostgreSQL Connection properties
-            print(connection.get_dsn_parameters(), "\n")
-
-            # Print PostgreSQL version
-            cursor.execute("SELECT version();")
-            record = cursor.fetchone()
-            _logger.info(f"You are connected to -  {record}")
-            query = '''SELECT id,name,email FROM res_partner where name ilike 'Janevski Leon'; '''
-            cursor.execute(query)
-            leon = cursor.fetchall()
-            leon_new = self.env['res.partner'].sudo().search([('name','ilike','Janevski Leon')])
-            _logger.info(f"staro  {leon}")
-            _logger.info(f"novo  {leon_new.old_id} {leon_new.id} {leon_new.name} {leon_new.email} {leon_new.active}")
-            # proba = self.env['res.partner'].sudo().search([('name', 'ilike', 'Martin Schmid')])
-            _logger.info(f"bez dupli space  {proba.old_id} {proba.id} {proba.name} {proba.email} {proba.active}")
-            # VO ODOO 14 GI BRISE SPACOVITE
-        except (Exception, psycopg2.Error) as error:
-            _logger.info(f"Error while connecting to PostgreSQL {error}")
-
-        finally:
-            # closing database connection.
-            if (connection):
-                cursor.close()
-                connection.close()
-                _logger.info("PostgreSQL connection is closed")
-
 class DbMigrateJobs(models.Model):
     _inherit = "hr.job"
     old_id = fields.Integer(string='id before migration')
@@ -2402,6 +3125,9 @@ class DbMigratePartners(models.Model):
     old_id = fields.Integer(string='id before migration')
     old_company_id = fields.Integer(string='old company id res.company')
     old_user_id = fields.Integer(string='old user id')
+    # x_leadsource = fields.Selection(selection_add=[('presence_holiday_absent', 'On leave'),
+    #                                                   ('presence_holiday_present', 'Present but on leave')])
+    # proba = fields.Integer(string='proba')
 
 
 class DbMigrateUsers(models.Model):
@@ -2514,6 +3240,7 @@ class DbMigrateProductPricelist(models.Model):
     _inherit = 'product.pricelist'
     old_id = fields.Integer(string='id before migration')
 
+
 class DbMigrateSaleOrder(models.Model):
     _inherit = 'sale.order'
     old_id = fields.Integer(string='id before migration')
@@ -2521,3 +3248,6 @@ class DbMigrateSaleOrder(models.Model):
     old_analytic_account_id = fields.Integer(string='id of analytic_account_id before migration')
     old_payment_term_id = fields.Integer(string='id of payment_term_id before migration')
     old_warehouse_id = fields.Integer(string='id of warehouse_id before migration')
+
+
+

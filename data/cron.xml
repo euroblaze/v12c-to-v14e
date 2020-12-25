@@ -1,0 +1,14 @@
+<!--<?xml version="1.0" ?>-->
+<!--<odoo>-->
+<!--    <data noupdate="1">-->
+<!--        <record id="updating_contacts" model="ir.cron">-->
+<!--            <field name="name">Updating contacts from v12 to v14 db</field>-->
+<!--            <field name="model_id" ref="model_db_migrate_db_migrate"/>-->
+<!--            <field name="state">code</field>-->
+<!--            <field name="code">model.cron_contacts_update()</field>-->
+<!--            <field name="interval_number">1</field>-->
+<!--            <field name="interval_type">days</field>-->
+<!--            <field name="numbercall">1</field>-->
+<!--        </record>-->
+<!--    </data>-->
+<!--</odoo>-->

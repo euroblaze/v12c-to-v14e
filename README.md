@@ -26,4 +26,5 @@ It can be used in the multicompany context.
 
 ### Necessary improvements
 
-Th module should be invocable from CLI, to enable handling large volumes of data.
+This module should be invocable from CLI, to enable handling large volumes of data.
+Executing from web-browser is ruled out.

@@ -1,8 +1,19 @@
-### What does this module do?
+### What should this module do?
 
-- This module can be used as a basis tool for to migrate v12c to v12e.
+This module can be used as a basis tool for to migrate v12c to v12e.
 
-Following modules are covered:
+### How does it execute?
+
+`run.py` is a wrapper that 
+
+- Establishes the sequence of execution
+- Performs sanity checks on input data
+- Provides logging calls
+- Foresees as many problems as possible, and establishes call-paths to log & ignore the failure and continue execution.
+- Breaks the execution in fatal conditions
+
+
+Following modules are migrated:
 
 - Contacts
 - CRM

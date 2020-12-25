@@ -29,3 +29,4 @@ It can be used in the multicompany context.
 1. This module should be invocable from CLI, to enable handling large volumes of data.
 Executing from web-browser is ruled out.
 2. Comments & log messages only in English.
+3. Move hardcoded auth-credentials into a single config file.

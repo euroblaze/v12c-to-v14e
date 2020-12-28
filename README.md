@@ -13,7 +13,7 @@ This module can be used as a basis tool for to migrate v12c to v12e.
 - Breaks the execution in fatal conditions
 
 
-Following modules are migrated:
+Following modules can be migrated using this migration package:
 
 - Contacts
 - CRM
@@ -23,6 +23,9 @@ Following modules are migrated:
 - Recruitment
 
 It can be used in the multicompany context.
+
+All modules do not have to be imported at once. 
+It is possible to migrate specific datasets, including the required dependencies
 
 ### Necessary improvements
 

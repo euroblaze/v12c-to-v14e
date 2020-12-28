@@ -33,13 +33,17 @@ It is possible to migrate specific datasets, including the required dependencies
 
 1. This migration-module should be invocable from CLI, to enable handling large volumes of data.
 Executing from web-browser is ruled out.
-
 2. Parts of the module can be cronned to execute automatically, periodically.
-
 3. `run.py` can accept sysargs/parameters for selective execution.
 
 ### Necessary improvements
 
+1. Comments & log messages only in English.
+2. Move hardcoded auth-credentials into a single config file.
+3. Upon tweaking ±10%, this migration-package is reusable for other migration projects.
 
-2. Comments & log messages only in English.
-3. Move hardcoded auth-credentials into a single config file.
+### Code Quality
+
+1. Object-oriented, reusable code. 
+2. No code repetitions.
+2. Code review & feedback by a senior dev.

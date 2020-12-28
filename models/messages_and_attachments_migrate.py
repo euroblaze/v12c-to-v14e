@@ -1,4 +1,4 @@
-from odoo import models, fields, api
+from odoo import models, fields, api ,  tools as tl
 import xmlrpc.client
 import os
 import json
@@ -17,8 +17,9 @@ class DbMigrateMailMessage(models.Model):
 
     def message_mail(self):
         try:
-            connection = psycopg2.connect(user="leon",
-                                          password="Janevski97@",
+            cli_commands = tl.config
+            connection = psycopg2.connect(user=cli_commands.get('user_name'),
+                                          password=cli_commands.get('local_password'),
                                           host="172.17.0.1",
                                           port="5432",
                                           database="v12cc-sabota")
@@ -140,8 +141,9 @@ class DbMigrateMailMessage(models.Model):
 
     def res_partner_messages(self):
         try:
-            connection = psycopg2.connect(user="leon",
-                                          password="Janevski97@",
+            cli_commands = tl.config
+            connection = psycopg2.connect(user=cli_commands.get('user_name'),
+                                          password=cli_commands.get('local_password'),
                                           host="172.17.0.1",
                                           port="5432",
                                           database="v12cc-sabota")
@@ -255,11 +257,12 @@ class DbMigrateMailMessage(models.Model):
         messages = self.env['mail.message'].sudo().search([('model','=','hr.applicant')])
         _logger.info('update_relation_message_partner')
         try:
-            connection = psycopg2.connect(user="odoo",
-                                          password="odoo",
-                                          host="172.19.0.2",
-                                          port="5432",
-                                          database="najnovaDB-sabota")
+            cli_commands = tl.config
+            connection = psycopg2.connect(user=cli_commands.get('local_odoo_db_user'),
+                                           password=cli_commands.get('local_odoo_db_password'),
+                                           host="172.19.0.2",
+                                           port="5432",
+                                           database="najnovaDB-sabota")
 
             cursor = connection.cursor()
             # Print PostgreSQL Connection properties
@@ -317,8 +320,9 @@ class DbMigrateMailMessage(models.Model):
     def message_subtype(self):
         try:
             _logger.info("MESSAGE SUBTYPE MIGRATE")
-            connection = psycopg2.connect(user="leon",
-                                          password="Janevski97@",
+            cli_commands = tl.config
+            connection = psycopg2.connect(user=cli_commands.get('user_name'),
+                                          password=cli_commands.get('local_password'),
                                           host="172.17.0.1",
                                           port="5432",
                                           database="v12cc-sabota")
@@ -374,8 +378,9 @@ class DbMigrateMailMessage(models.Model):
     def res_partner_attachemnts(self):
         try:
             _logger.info("ATTACHMENTS MIGRATE")
-            connection = psycopg2.connect(user="leon",
-                                          password="Janevski97@",
+            cli_commands = tl.config
+            connection = psycopg2.connect(user=cli_commands.get('user_name'),
+                                          password=cli_commands.get('local_password'),
                                           host="172.17.0.1",
                                           port="5432",
                                           database="v12cc-sabota")
@@ -448,8 +453,9 @@ class DbMigrateMailMessage(models.Model):
     def attachments_for_applicants(self):
         try:
             _logger.info("ATTACHMENTS MIGRATE")
-            connection = psycopg2.connect(user="leon",
-                                          password="Janevski97@",
+            cli_commands = tl.config
+            connection = psycopg2.connect(user=cli_commands.get('user_name'),
+                                          password=cli_commands.get('local_password'),
                                           host="172.17.0.1",
                                           port="5432",
                                           database="v12cc-sabota")

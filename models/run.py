@@ -10,6 +10,14 @@ _logger = logging.getLogger(__name__)
 class run_script(models.Model):
 
     def run(self):
+        # RES.PARTNER
+
+        self.env["res.partner"].res_partner_db()
+        self.env["res.partner"].update_res_partner()
+        self.env["mail.message"].res_partner_messages()
+        self.env["mail.message"].res_partner_attachemnts()
+
+
         # HR.APPLICANT MIGRATION
 
         self.env["hr.applicant"].applicant_db()
@@ -36,13 +44,6 @@ class run_script(models.Model):
         self.env["hr.applicant"].delete_all_followers_for_hr_applicants_messages()
         self.env["hr.applicant"].followers_update_for_applicant_messages()
         self.env["mail.message"].attachments_for_applicants()
-
-        # RES.PARTNER
-
-        self.env["res.partner"].res_partner_db()
-        self.env["res.partner"].update_res_partner()
-        self.env["mail.message"].res_partner_messages()
-        self.env["mail.message"].res_partner_attachemnts()
 
 
         #CRM

@@ -1,4 +1,4 @@
-from odoo import models, fields, api
+from odoo import models, fields, api , tools as tl
 import xmlrpc.client
 import os
 import json
@@ -23,12 +23,12 @@ class DbMigrateSaleOrder(models.Model):
 
     def product_pricelist_migrate(self):
         try:
-            _logger.info("PRODUCT-PRICELIST MIGRATE")
-            connection = psycopg2.connect(user="leon",
-                                          password="Janevski97@",
+            cli_commands = tl.config
+            connection = psycopg2.connect(user=cli_commands.get('user_name'),
+                                          password=cli_commands.get('local_password'),
                                           host="172.17.0.1",
                                           port="5432",
-                                          database="v12cc")
+                                          database="v12cc-sabota")
 
             cursor = connection.cursor()
             # Print PostgreSQL Connection properties
@@ -86,11 +86,12 @@ class DbMigrateSaleOrder(models.Model):
     def sale_order_migrate(self):
         try:
             _logger.info("SALE-ORDER MIGRATE")
-            connection = psycopg2.connect(user="leon",
-                                          password="Janevski97@",
+            cli_commands = tl.config
+            connection = psycopg2.connect(user=cli_commands.get('user_name'),
+                                          password=cli_commands.get('local_password'),
                                           host="172.17.0.1",
                                           port="5432",
-                                          database="v12cc")
+                                          database="v12cc-sabota")
 
             cursor = connection.cursor()
             # Print PostgreSQL Connection properties

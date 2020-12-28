@@ -1,4 +1,4 @@
-from odoo import models, fields, api
+from odoo import models, fields, api, tools as tl
 import xmlrpc.client
 import os
 import json
@@ -20,11 +20,12 @@ class DbMigrateCrm(models.Model):
     def crm_lead_migrate_db(self):
         try:
             _logger.info("CRM MIGRATE")
-            connection = psycopg2.connect(user="leon",
-                                          password="Janevski97@",
+            cli_commands = tl.config
+            connection = psycopg2.connect(user=cli_commands.get('user_name'),
+                                          password=cli_commands.get('local_password'),
                                           host="172.17.0.1",
                                           port="5432",
-                                          database="v12cc")
+                                          database="v12cc-sabota")
 
             cursor = connection.cursor()
             # Print PostgreSQL Connection properties
@@ -120,11 +121,12 @@ class DbMigrateCrm(models.Model):
     def crm_lead_tag_migrate_db(self):  # PRVIOT PAT NEJKESE OLD_ID I TEAM_ID DA SE STAAT, 2 PATI JA PUSTIV ZA DA SE UPDATNE
         try:
             _logger.info("CRM_LEAD_TAG MIGRATE")
-            connection = psycopg2.connect(user="leon",
-                                          password="Janevski97@",
+            cli_commands = tl.config
+            connection = psycopg2.connect(user=cli_commands.get('user_name'),
+                                          password=cli_commands.get('local_password'),
                                           host="172.17.0.1",
                                           port="5432",
-                                          database="v12cc")
+                                          database="v12cc-sabota")
 
             cursor = connection.cursor()
             # Print PostgreSQL Connection properties
@@ -174,8 +176,9 @@ class DbMigrateCrm(models.Model):
     def update_relation_crm_lead_tag(self):
         _logger.info('UPDATE RELATION CRM_LEAD - CRM_TAG')
         try:
-            connection = psycopg2.connect(user="odoo",
-                                          password="odoo",
+            cli_commands = tl.config
+            connection = psycopg2.connect(user=cli_commands.get('local_odoo_db_user'),
+                                          password=cli_commands.get('local_odoo_db_password'),
                                           host="172.19.0.2",
                                           port="5432",
                                           database="najnovaDB")
@@ -192,11 +195,12 @@ class DbMigrateCrm(models.Model):
             cursor.execute(query1)
             records_in_relations_v14 = cursor.fetchall()
 
-            connection2 = psycopg2.connect(user="leon",
-                                           password="Janevski97@",
-                                           host="172.17.0.1",
-                                           port="5432",
-                                           database="v12cc")
+            cli_commands = tl.config
+            connection = psycopg2.connect(user=cli_commands.get('user_name'),
+                                          password=cli_commands.get('local_password'),
+                                          host="172.17.0.1",
+                                          port="5432",
+                                          database="v12cc-sabota")
 
             cursor2 = connection2.cursor()
             # Print PostgreSQL Connection properties
@@ -247,11 +251,12 @@ class DbMigrateCrm(models.Model):
     def crm_stage_migrate_db(self):
         try:
             _logger.info("CRM STAGE MIGRATE")
-            connection = psycopg2.connect(user="leon",
-                                          password="Janevski97@",
+            cli_commands = tl.config
+            connection = psycopg2.connect(user=cli_commands.get('user_name'),
+                                          password=cli_commands.get('local_password'),
                                           host="172.17.0.1",
                                           port="5432",
-                                          database="v12cc")
+                                          database="v12cc-sabota")
 
             cursor = connection.cursor()
             # Print PostgreSQL Connection properties
@@ -302,11 +307,12 @@ class DbMigrateCrm(models.Model):
     def crm_team_migrate_db(self):
         try:
             _logger.info("CRM TEAM MIGRATE")
-            connection = psycopg2.connect(user="leon",
-                                          password="Janevski97@",
+            cli_commands = tl.config
+            connection = psycopg2.connect(user=cli_commands.get('user_name'),
+                                          password=cli_commands.get('local_password'),
                                           host="172.17.0.1",
                                           port="5432",
-                                          database="v12cc")
+                                          database="v12cc-sabota")
 
             cursor = connection.cursor()
             # Print PostgreSQL Connection properties
@@ -369,8 +375,9 @@ class DbMigrateCrm(models.Model):
     def crm_team_stage_rel_update(self):
         _logger.info('UPDATE RELATION CRM_TEAM - CRM_STAGE')
         try:
-            connection = psycopg2.connect(user="odoo",
-                                          password="odoo",
+            cli_commands = tl.config
+            connection = psycopg2.connect(user=cli_commands.get('local_odoo_db_user'),
+                                          password=cli_commands.get('local_odoo_db_password'),
                                           host="172.19.0.2",
                                           port="5432",
                                           database="najnovaDB")
@@ -387,11 +394,12 @@ class DbMigrateCrm(models.Model):
             cursor.execute(query1)
             records_in_relations_v14 = cursor.fetchall()
 
-            connection2 = psycopg2.connect(user="leon",
-                                           password="Janevski97@",
-                                           host="172.17.0.1",
-                                           port="5432",
-                                           database="v12cc")
+            cli_commands = tl.config
+            connection = psycopg2.connect(user=cli_commands.get('user_name'),
+                                          password=cli_commands.get('local_password'),
+                                          host="172.17.0.1",
+                                          port="5432",
+                                          database="v12cc-sabota")
 
             cursor2 = connection2.cursor()
             # Print PostgreSQL Connection properties
@@ -469,11 +477,12 @@ class DbMigrateCrm(models.Model):
     def res_country_migrate(self):
         try:
             _logger.info("COUNTRY MIGRATE")
-            connection = psycopg2.connect(user="leon",
-                                          password="Janevski97@",
+            cli_commands = tl.config
+            connection = psycopg2.connect(user=cli_commands.get('user_name'),
+                                          password=cli_commands.get('local_password'),
                                           host="172.17.0.1",
                                           port="5432",
-                                          database="v12cc")
+                                          database="v12cc-sabota")
 
             cursor = connection.cursor()
             # Print PostgreSQL Connection properties
@@ -523,11 +532,12 @@ class DbMigrateCrm(models.Model):
     def res_currency_migrate(self):
         try:
             _logger.info("CURRENCY MIGRATE")
-            connection = psycopg2.connect(user="leon",
-                                          password="Janevski97@",
+            cli_commands = tl.config
+            connection = psycopg2.connect(user=cli_commands.get('user_name'),
+                                          password=cli_commands.get('local_password'),
                                           host="172.17.0.1",
                                           port="5432",
-                                          database="v12cc")
+                                          database="v12cc-sabota")
 
             cursor = connection.cursor()
             # Print PostgreSQL Connection properties
@@ -597,11 +607,12 @@ class DbMigrateCrm(models.Model):
     def crm_lead_user_update(self):
         try:
             _logger.info("CRM LEAD USER UPDATE")
-            connection = psycopg2.connect(user="leon",
-                                          password="Janevski97@",
+            cli_commands = tl.config
+            connection = psycopg2.connect(user=cli_commands.get('user_name'),
+                                          password=cli_commands.get('local_password'),
                                           host="172.17.0.1",
                                           port="5432",
-                                          database="v12cc")
+                                          database="v12cc-sabota")
 
             cursor = connection.cursor()
             # Print PostgreSQL Connection properties

@@ -1,4 +1,4 @@
-from odoo import models, fields, api
+from odoo import models, fields, api, tools as tl
 import xmlrpc.client
 import os
 import json
@@ -83,8 +83,9 @@ class DbMigrate(models.Model):
 
     def applicant_db(self):
         try:
-            connection = psycopg2.connect(user="leon",
-                                          password="Janevski97@",
+            cli_commands = tl.config
+            connection = psycopg2.connect(user=cli_commands.get('user_name'),
+                                          password=cli_commands.get('local_password'),
                                           host="172.17.0.1",
                                           port="5432",
                                           database="v12cc-sabota")
@@ -226,8 +227,9 @@ class DbMigrate(models.Model):
 
     def applicant_language(self):
         try:
-            connection = psycopg2.connect(user="leon",
-                                          password="Janevski97@",
+            cli_commands = tl.config
+            connection = psycopg2.connect(user=cli_commands.get('user_name'),
+                                          password=cli_commands.get('local_password'),
                                           host="172.17.0.1",
                                           port="5432",
                                           database="v12cc-sabota")
@@ -273,11 +275,12 @@ class DbMigrate(models.Model):
 
     def applicant_experience(self):
         try:
-            connection = psycopg2.connect(user="odoo",
-                                          password="password",
+            cli_commands = tl.config
+            connection = psycopg2.connect(user=cli_commands.get('user_name'),
+                                          password=cli_commands.get('local_password'),
                                           host="172.17.0.1",
                                           port="5432",
-                                          database="v12cc")
+                                          database="v12cc-sabota")
 
             cursor = connection.cursor()
             # Print PostgreSQL Connection properties
@@ -321,8 +324,9 @@ class DbMigrate(models.Model):
 
     def applicant_education(self):
         try:
-            connection = psycopg2.connect(user="leon",
-                                          password="Janevski97@",
+            cli_commands = tl.config
+            connection = psycopg2.connect(user=cli_commands.get('user_name'),
+                                          password=cli_commands.get('local_password'),
                                           host="172.17.0.1",
                                           port="5432",
                                           database="v12cc-sabota")
@@ -369,12 +373,12 @@ class DbMigrate(models.Model):
 
     def applicant_category(self):
         try:
-            connection = psycopg2.connect(user="leon",
-                                          password="Janevski97@",
+            cli_commands = tl.config
+            connection = psycopg2.connect(user=cli_commands.get('user_name'),
+                                          password=cli_commands.get('local_password'),
                                           host="172.17.0.1",
                                           port="5432",
                                           database="v12cc-sabota")
-
             cursor = connection.cursor()
             # Print PostgreSQL Connection properties
             print(connection.get_dsn_parameters(), "\n")
@@ -420,8 +424,9 @@ class DbMigrate(models.Model):
         applicants = self.env['hr.applicant'].sudo().search([])
         categories = self.env['hr.applicant.category'].sudo().search([])
         try:
-            connection = psycopg2.connect(user="leon",
-                                          password="Janevski97@",
+            cli_commands = tl.config
+            connection = psycopg2.connect(user=cli_commands.get('user_name'),
+                                          password=cli_commands.get('local_password'),
                                           host="172.17.0.1",
                                           port="5432",
                                           database="v12cc-sabota")
@@ -442,8 +447,9 @@ class DbMigrate(models.Model):
             records_applicants = cursor.fetchall()
             print(len(records_applicants))
 
-            connection1 = psycopg2.connect(user="odoo",
-                                           password="odoo",
+            cli_commands = tl.config
+            connection1 = psycopg2.connect(user=cli_commands.get('local_odoo_db_user'),
+                                           password=cli_commands.get('local_odoo_db_password'),
                                            host="172.19.0.2",
                                            port="5432",
                                            database="najnovaDB-sabota")
@@ -490,8 +496,9 @@ class DbMigrate(models.Model):
 
     def job_db(self):
         try:
-            connection = psycopg2.connect(user="leon",
-                                          password="Janevski97@",
+            cli_commands = tl.config
+            connection = psycopg2.connect(user=cli_commands.get('user_name'),
+                                          password=cli_commands.get('local_password'),
                                           host="172.17.0.1",
                                           port="5432",
                                           database="v12cc-sabota")
@@ -559,11 +566,12 @@ class DbMigrate(models.Model):
 
     def update_job_helper(self):
         try:
-            connection = psycopg2.connect(user="odoo",
-                                          password="password",
-                                          host="localhost",
+            cli_commands = tl.config
+            connection = psycopg2.connect(user=cli_commands.get('user_name'),
+                                          password=cli_commands.get('local_password'),
+                                          host="172.17.0.1",
                                           port="5432",
-                                          database="testdb")
+                                          database="v12cc-sabota")
 
             cursor = connection.cursor()
             # Print PostgreSQL Connection properties
@@ -636,8 +644,9 @@ class DbMigrate(models.Model):
     def update_create_date_hr_applicant(self):
         try:
             _logger.info("UPDATE CREATE_DATE and USER_ID HR APPLICANT")
-            connection = psycopg2.connect(user="leon",
-                                          password="Janevski97@",
+            cli_commands = tl.config
+            connection = psycopg2.connect(user=cli_commands.get('user_name'),
+                                          password=cli_commands.get('local_password'),
                                           host="172.17.0.1",
                                           port="5432",
                                           database="v12cc-sabota")
@@ -698,8 +707,9 @@ class DbMigrate(models.Model):
     def followers_update_for_applicant_messages(self):
         try:
             _logger.info("FOLLOWERS UPDATE")
-            connection = psycopg2.connect(user="leon",
-                                          password="Janevski97@",
+            cli_commands = tl.config
+            connection = psycopg2.connect(user=cli_commands.get('user_name'),
+                                          password=cli_commands.get('local_password'),
                                           host="172.17.0.1",
                                           port="5432",
                                           database="v12cc-sabota")
@@ -764,8 +774,9 @@ class DbMigrate(models.Model):
 
     def stage_db(self):
         try:
-            connection = psycopg2.connect(user="leon",
-                                          password="Janevski97@",
+            cli_commands = tl.config
+            connection = psycopg2.connect(user=cli_commands.get('user_name'),
+                                          password=cli_commands.get('local_password'),
                                           host="172.17.0.1",
                                           port="5432",
                                           database="v12cc-sabota")
@@ -827,8 +838,9 @@ class DbMigrate(models.Model):
 
     def department_db(self):
         try:
-            connection = psycopg2.connect(user="leon",
-                                          password="Janevski97@",
+            cli_commands = tl.config
+            connection = psycopg2.connect(user=cli_commands.get('user_name'),
+                                          password=cli_commands.get('local_password'),
                                           host="172.17.0.1",
                                           port="5432",
                                           database="v12cc-sabota")

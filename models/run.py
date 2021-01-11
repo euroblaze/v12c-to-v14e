@@ -12,10 +12,11 @@ class run_script(models.Model):
     def run(self):
         # RES.PARTNER
 
-        self.env["res.partner"].res_partner_db()
-        self.env["res.partner"].update_res_partner()
-        self.env["mail.message"].res_partner_messages()
-        self.env["mail.message"].res_partner_attachemnts()
+        self.env["res.partner"].new_res_partner_migrate()
+        self.env["res.company"].new_company_migrate()
+        self.env["res.partner"].new_res_partner_update()
+        self.env["mail.message"].new_res_partner_message()
+        self.env["mail.message"].new_res_partner_attachments()
 
 
         # HR.APPLICANT MIGRATION

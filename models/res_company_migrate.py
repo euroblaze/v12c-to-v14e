@@ -13,93 +13,108 @@ class DbMigrateCompany(models.Model):
     old_partner_id = fields.Integer(string='old partner id res.partner')
     old_parent_id = fields.Integer(string='old parent id res.company')
 
-    def company_db(self):
+    def new_company_migrate(self):
         try:
+            _logger.info("RES COMPANY MIGRATE")
             cli_commands = tl.config
-            connection = psycopg2.connect(user=cli_commands.get('user_name'),
-                                          password=cli_commands.get('local_password'),
-                                          host="172.17.0.1",
-                                          port="5432",
-                                          database="v12cc-sabota")
+            connection1 = psycopg2.connect(user=cli_commands.get('user_name'),
+                                           password=cli_commands.get('local_password'),
+                                           host="172.17.0.1",
+                                           port="5432",
+                                           database="v12cc-sabota")
 
-            cursor = connection.cursor()
-            # Print PostgreSQL Connection properties
-            print(connection.get_dsn_parameters(), "\n")
+            cursor1 = connection1.cursor()
+            cursor1.execute("Select * FROM res_company LIMIT 0")
+            list_fields_v12 = [desc[0] for desc in cursor1.description]
+            # _logger.info(f"fields vo 12ka {list_fields_v12}")
 
-            # Print PostgreSQL version
-            cursor.execute("SELECT version();")
-            record = cursor.fetchone()
-            print("You are connected to - ", record, "\n")
+            connection2 = psycopg2.connect(user=cli_commands.get('local_odoo_db_user'),
+                                           password=cli_commands.get('local_odoo_db_password'),
+                                           host="172.19.0.2",
+                                           port="5432",
+                                           database="najnovaDB-merge")
 
-            cursor.execute("Select * FROM res_company LIMIT 0")
-            colnames = [desc[0] for desc in cursor.description]
+            cursor2 = connection2.cursor()
+            cursor2.execute("Select * FROM res_company LIMIT 0")
+            list_fields_v14 = [desc[0] for desc in cursor2.description]
+            # _logger.info(f"fields vo 14ka {list_fields_v14}")
+
+            colnames = self.same_fields_check(list_fields_v12, list_fields_v14)
+            # _logger.info(f"zaednicki fildovi se {colnames}")
+
             query = '''SELECT * FROM res_company; '''
-            cursor.execute(query)
-            records_applicants = cursor.fetchall()
-            print(len(records_applicants))
-            for record in records_applicants:
+            cursor1.execute(query)
+            companies = cursor1.fetchall()
+            for record in companies:
+                _logger.info(f"{record}")
                 data = {}
                 data['old_id'] = record[0]
-                for i in range(1, len(colnames)):
-                    if colnames[i] == 'partner_id':
+                for i in range(1, len(list_fields_v12)):
+                    if list_fields_v12[i] == 'partner_id':
+                        partner = self.env['res.partner'].search([('old_id', '=', record[i])])
+                        for p in partner:
+                            data['partner_id'] = p.id
+                            break
                         data['old_partner_id'] = record[i]
-                        # data[colnames[i]] = 1
-                    elif colnames[i] == 'parent_id':
-                        # DONE
+                    elif list_fields_v12[i] == 'parent_id':
+                        partner = self.env['res.partner'].search([('old_id', '=', record[i])])
+                        for p in partner:
+                            data['parent_id'] = p.id
+                            break
                         data['old_parent_id'] = record[i]
                     else:
-                        data[colnames[i]] = record[i]
+                        data[list_fields_v12[i]] = record[i]
+                final_data = {}
+                for field in colnames:
+                    if field in data:
+                        final_data[field] = data[field]
+                final_data['old_id'] = data['old_id']
+                company = self.env['res.company'].search([('old_id', '=', final_data['old_id'])])
+                final_data.pop('project_time_mode_id')
+                final_data.pop('internal_transit_location_id')
+                final_data.pop('security_lead')
+                final_data.pop('vat_check_vies')
+                final_data.pop('nomenclature_id')
+                final_data.pop('timesheet_encode_uom_id')
+                final_data.pop('fiscalyear_last_month')
+                final_data.pop('font')
+                final_data.pop('resource_calendar_id')
+                final_data.pop('chart_template_id')
+                final_data.pop('currency_exchange_journal_id')
+                final_data.pop('external_report_layout_id')
+                final_data.pop('parent_id')
                 for i in range(len(colnames)):
                     if 'rml_' in colnames[i]:
-                        data.pop(colnames[i])
+                        final_data.pop(colnames[i])
                     elif 'account_' in colnames[i]:
-                        data.pop(colnames[i])
+                        final_data.pop(colnames[i])
                     elif 'sale_' in colnames[i]:
-                        data.pop(colnames[i])
+                        final_data.pop(colnames[i])
                     elif 'po_' in colnames[i]:
-                        data.pop(colnames[i])
+                        final_data.pop(colnames[i])
                     elif 'x_' in colnames[i]:
-                        data.pop(colnames[i])
+                        final_data.pop(colnames[i])
                     elif 'social_' in colnames[i]:
-                        data.pop(colnames[i])
+                        final_data.pop(colnames[i])
                     elif 'leave_' in colnames[i]:
-                        data.pop(colnames[i])
+                        final_data.pop(colnames[i])
                     elif 'invoice_' in colnames[i]:
-                        data.pop(colnames[i])
-                data.pop('accounts_code_digits')
-                data.pop('custom_footer')
-                data.pop('project_time_mode_id')
-                data.pop('overdue_msg')
-                data.pop('propagation_minimum_delta')
-                data.pop('internal_transit_location_id')
-                data.pop('security_lead')
-                data.pop('intercompany_user_id')
-                data.pop('auto_generate_invoices')
-                data.pop('so_from_po')
-                data.pop('warehouse_id')
-                data.pop('auto_validation')
-                data.pop('vat_check_vies')
-                data.pop('dearness_allowance')
-                data.pop('openupgrade_legacy_12_0_external_report_layout')
-                data.pop('nomenclature_id')
-                data.pop('timesheet_encode_uom_id')
-                data.pop('purchase_template')
-                data.pop('stock_template')
-                data.pop('fiscalyear_last_month')
-                data.pop('font')
-                data.pop('resource_calendar_id')
-                data.pop('chart_template_id')
-                data.pop('currency_exchange_journal_id')
-                data.pop('external_report_layout_id')
-                companies = self.env['res.company'].search([])
-                flag = 0
-                for company in companies:
-                    if data['name'] in company.name:
-                        company.write({'old_id': data['old_id']})
-                        flag = 1
-                if flag == 0:
-                    self.env['res.company'].sudo().create(data)
-
+                        final_data.pop(colnames[i])
+                _logger.info(f"{final_data}")
+                if company:
+                    company.write({'old_id': final_data['old_id']})
+                    _logger.info('\n')
+                    _logger.info('\n')
+                else:
+                    try:
+                        self.env['res.company'].sudo().create(final_data)
+                        _logger.info('\n')
+                        _logger.info('\n')
+                    except (Exception) as error:
+                        logging.exception(f"Error while creating a new company: {error} ")
+                        _logger.info('\n')
+                        _logger.info('\n')
+                        continue
 
 
         except (Exception, psycopg2.Error) as error:
@@ -107,21 +122,10 @@ class DbMigrateCompany(models.Model):
 
         finally:
             # closing database connection.
-            if (connection):
-                cursor.close()
-                connection.close()
+            if (connection1):
+                cursor1.close()
+                connection1.close()
                 print("PostgreSQL connection is closed")
 
-    def update_company_db(self):
-        companies = self.env['res.company'].search([])
-        partners = self.env['res.partner'].search([])
-        print(len(companies))
-        print(len(partners))
-        for com in companies:
-            for com1 in companies:
-                if com.old_parent_id == com1.old_id:
-                    com.write({'parent_id': com1.id})
-        for com in companies:
-            for par in partners:
-                if com.old_partner_id == par.old_id:
-                    com.write({'partner_id': par.id})
+
+

@@ -2637,6 +2637,81 @@ class DbMigrate(models.Model):
                 })
             _logger.info("\n")
             _logger.info("\n")
+    #CRM ATTACHMENTS
+    def crm_attachments_migrate(self):
+        try:
+            _logger.info("CRM ATTACHMENTS MIGRATE")
+            cli_commands = tl.config
+            connection = psycopg2.connect(user=cli_commands.get('user_name'),
+                                          password=cli_commands.get('local_password'),
+                                          host="172.17.0.1",
+                                          port="5432",
+                                          database="v12cc-sabota")
+
+            cursor = connection.cursor()
+            # Print PostgreSQL Connection properties
+            print(connection.get_dsn_parameters(), "\n")
+
+            # Print PostgreSQL version
+            cursor.execute("SELECT version();")
+            record = cursor.fetchone()
+            _logger.info(f"You are connected to -  {record}")
+
+            cursor.execute("Select * FROM ir_attachment LIMIT 0")
+            colnames = [desc[0] for desc in cursor.description]
+            # print(colnames)
+            query = '''SELECT * FROM ir_attachment where res_model='crm.lead'; '''
+            cursor.execute(query)
+            attachments = cursor.fetchall()
+            for record in attachments:
+                data = {}
+                data['old_id'] = record[0]
+                for i in range(1, len(colnames)):
+                    if colnames[i] == 'company_id':
+                        companies = self.env['res.company'].sudo().search([('old_id', '=', record[i])])
+                        if companies:
+                            for company in companies:
+                                data['company_id'] = company.id
+                    elif colnames[i] == 'create_uid':
+                        users = self.env['res.users'].sudo().search([('old_id', '=', record[i])])
+                        if users:
+                            for user in users:
+                                data['create_uid'] = user.id
+                    elif colnames[i] == 'write_uid':
+                        users = self.env['res.users'].sudo().search([('old_id', '=', record[i])])
+                        if users:
+                            for user in users:
+                                data['create_uid'] = user.id
+                    elif colnames[i] == 'res_id':
+                        partners = self.env['crm.lead'].sudo().search([('old_id', '=', record[i])])
+                        _logger.info(f"{partners}")
+                        if partners:
+                            for partner in partners:
+                                data['res_id'] = partner.id
+                    else:
+                        data[colnames[i]] = record[i]
+
+                _logger.info(f"{data}")
+                data.pop('old_id')
+                data.pop('datas_fname')
+                data.pop('openupgrade_legacy_11_0_priority')
+                data.pop('res_model_name')
+                data.pop('active')
+                data.pop('activity_data')
+                data.pop('website_id')
+                self.env['ir.attachment'].sudo().create(data)
+                _logger.info("\n")
+                _logger.info("\n")
+
+        except (Exception, psycopg2.Error) as error:
+            _logger.info(f"Error while connecting to PostgreSQL {error}")
+
+        finally:
+            # closing database connection.
+            if (connection):
+                cursor.close()
+                connection.close()
+                _logger.info("PostgreSQL connection is closed")
 
 
     def message_author_update_by_name(self):
@@ -2882,14 +2957,13 @@ class DbMigrate(models.Model):
                         data[colnames[i]] = record[i]
                 name = data['name'].strip()
                 name = name.replace("  ", " ")
-                product_pricelist = self.env['product.pricelist'].sudo().search(([('name','=',name),'|',
-                                            ('active','=',False),('active','=',True)]))
+                # product_pricelist = self.env['product.pricelist'].sudo().search(([('name','=',name),'|',
+                #                             ('active','=',False),('active','=',True)]))
+                product_pricelist = self.env['product.pricelist'].sudo().search(([('old_id','=',data['old_id'])]))
                 if product_pricelist:
                     for pro in product_pricelist:
                         _logger.info('WRITE')
-                        pro.write({
-                            'old_id' : data['old_id']
-                        })
+                        pro.write(data)
                 else:
                     _logger.info("CREATE")
                     self.env['product.pricelist'].sudo().create(data)
@@ -3060,6 +3134,116 @@ class DbMigrate(models.Model):
                 connection.close()
                 _logger.info("PostgreSQL connection is closed")
 
+    def stock_location_migrate(self):
+        try:
+            _logger.info("STOCK-LOCATION MIGRATE")
+            cli_commands = tl.config
+            connection = psycopg2.connect(user=cli_commands.get('user_name'),
+                                          password=cli_commands.get('local_password'),
+                                          host="172.17.0.1",
+                                          port="5432",
+                                          database="v12cc-sabota")
+
+            cursor = connection.cursor()
+            # Print PostgreSQL Connection properties
+            print(connection.get_dsn_parameters(), "\n")
+
+            # Print PostgreSQL version
+            cursor.execute("SELECT version();")
+            record = cursor.fetchone()
+            _logger.info(f"You are connected to -  {record}")
+            cursor.execute("Select * FROM stock_location LIMIT 0")
+            colnames = [desc[0] for desc in cursor.description]
+            query = '''SELECT * FROM stock_location; '''
+            cursor.execute(query)
+            records = cursor.fetchall()
+            for record in records:
+                data = {}
+                data['old_id'] = record[0]
+                for i in range(1, len(colnames)):
+                    if colnames[i] == 'parent_id':  # KJE TREBA UPDATE
+                        data['old_partner_id'] = record[i]
+                    elif colnames[i] == 'company_id':
+                        companies  = self.env['res.company'].sudo().search([('old_id', '=', record[i])])
+                        for company in companies:
+                            data['company_id'] = company.id
+                            break
+                    elif colnames[i] == 'location_id': # KJE TREBA UPDATE
+                        data['old_location_id'] = record[i]
+                    else:
+                        data[colnames[i]] = record[i]
+                data.pop('parent_left')
+                data.pop('parent_right')
+                data.pop('putaway_strategy_id')
+                data.pop('partner_id')
+                _logger.info(f"{data}")
+                stock_location = self.env['stock.location'].sudo().search([('name', '=', data['name'])])
+                if stock_location:
+                    _logger.info("exist")
+                else:
+                    _logger.info("create")
+                    if data['usage'] != 'procurement':
+                        stock_barcode = self.env['stock.location'].sudo().search([('barcode', '=', data['barcode'])])
+                        _logger.info(f"SO BARKOD {stock_barcode}")
+                        if stock_barcode:
+                            _logger.info("postoi so barkod takkov")
+                        else:
+                            self.env['stock.location'].sudo().create(data)
+                _logger.info("\n")
+                _logger.info("\n")
+
+        except (Exception, psycopg2.Error) as error:
+            _logger.info(f"{error}")
+
+        finally:
+            # closing database connection.
+            if (connection):
+                cursor.close()
+                connection.close()
+                _logger.info("PostgreSQL connection is closed")
+
+    def stock_warehouse_migrate(self):
+        try:
+            _logger.info("STOCK-LOCATION MIGRATE")
+            cli_commands = tl.config
+            connection = psycopg2.connect(user=cli_commands.get('user_name'),
+                                          password=cli_commands.get('local_password'),
+                                          host="172.17.0.1",
+                                          port="5432",
+                                          database="v12cc-sabota")
+
+            cursor = connection.cursor()
+            # Print PostgreSQL Connection properties
+            print(connection.get_dsn_parameters(), "\n")
+
+            # Print PostgreSQL version
+            cursor.execute("SELECT version();")
+            record = cursor.fetchone()
+            _logger.info(f"You are connected to -  {record}")
+            cursor.execute("Select * FROM stock_location LIMIT 0")
+            colnames = [desc[0] for desc in cursor.description]
+            query = '''SELECT * FROM stock_location; '''
+            cursor.execute(query)
+            records = cursor.fetchall()
+            for record in records:
+                data = {}
+                data['old_id'] = record[0]
+                for i in range(1, len(colnames)):
+                    if colnames[i] == 'parent_id':  # KJE TREBA UPDATE
+                        data['old_partner_id'] = record[i]
+
+
+        except (Exception, psycopg2.Error) as error:
+            _logger.info(f"{error}")
+
+        finally:
+            # closing database connection.
+            if (connection):
+                cursor.close()
+                connection.close()
+                _logger.info("PostgreSQL connection is closed")
+
+
     #OVA TREBA DA GO NAPRAIS
     def sale_order_migrate(self):
         try:
@@ -3090,22 +3274,36 @@ class DbMigrate(models.Model):
                 for i in range(1, len(colnames)):
                     if colnames[i] == 'team_id':
                         team = self.env['crm.team'].sudo().search([('old_id', '=', record[i])])
-                        data['team_id'] = team.id
-                        _logger.info("TEAM IMA")
+                        for t in team:
+                            data['team_id'] = t.id
+                            _logger.info("TEAM IMA")
+                            break
                     elif colnames[i] == 'partner_id':
                         partner = self.env['res.partner'].sudo().search([('old_id', '=', record[i])])
-                        data['partner_id'] = partner.id
-                        _logger.info("PARTNER IMA")
+                        if partner:
+                            for p in partner:
+                                data['partner_id'] = p.id
+                                _logger.info("PARTNER IMA")
                     elif colnames[i] == 'procurement_group_id': # KJE TREBA DA SE UPDATNE
                         data['old_procurement_group_id'] = record[i]
                     elif colnames[i] == 'company_id':
                         company = self.env['res.company'].sudo().search([('old_id', '=', record[i])])
-                        data['company_id'] = company.id
-                        _logger.info("COMPANY IMA")
+                        if company:
+                            _logger.info(f"OLD COMPANY ID E {record[i]}")
+                            data['company_id'] = company.id
+                            _logger.info(f"NEW COMPANY ID E {company.id}")
+                            _logger.info("COMPANY IMA")
                     elif colnames[i] == 'pricelist_id': #MOZE KJE TREBA DA SE UPDAJTNE
                         product_pricelist = self.env['product.pricelist'].sudo().search([('old_id', '=', record[i])])
-                        data['pricelist_id'] = product_pricelist.id
-                        _logger.info("PRICELIST IMA")
+                        _logger.info(f"{product_pricelist}")
+                        if product_pricelist:
+                            _logger.info(f"OLD PRICELIST ID E {record[i]}")
+                            for p in product_pricelist:
+                                _logger.info(f"{p}")
+                                _logger.info(f"{p.id}")
+                                data['pricelist_id'] = p.id
+                                break
+                            _logger.info("PRICELIST IMA")
                     elif colnames[i] == 'analytic_account_id':
                         data['old_analytic_account_id'] = record[i] # KJE TREBA DA SE UPDATNE
                     elif colnames[i] == 'payment_term_id':
@@ -3113,12 +3311,16 @@ class DbMigrate(models.Model):
                     elif colnames[i] == 'partner_invoice_id':
                         _logger.info(f"{record[i]}")
                         partner = self.env['res.partner'].sudo().search([('old_id', '=', record[i])])
-                        data['partner_invoice_id'] = partner[i]
-                        _logger.info("PARTNER INVOICE IMA")
+                        for part in partner:
+                            data['partner_invoice_id'] = part.id
+                            _logger.info("PARTNER INVOICE IMA")
+                            break
                     elif colnames[i] == 'partner_shipping_id':
                         partner = self.env['res.partner'].sudo().search([('old_id', '=', record[i])])
-                        data['partner_shipping_id'] = partner[i]
-                        _logger.info("PARTNER SHIPPING IMA")
+                        for part in partner:
+                            data['partner_shipping_id'] = part.id
+                            _logger.info("PARTNER SHIPPING IMA")
+                            break
                     elif colnames[i] == 'opportunity_id':
                         if record[i]:
                             crm_lead = self.env['crm.lead'].sudo().search([('old_id', '=', record[i])])
@@ -3126,14 +3328,448 @@ class DbMigrate(models.Model):
                             _logger.info("OPPURTUNITY INVOICE IMA")
                     elif colnames[i] == 'warehouse_id':
                         data['old_warehouse_id'] = record[i] # KJE TREBA DA SE UPDATNE
+                    elif colnames[i] == 'user_id':
+                        user = self.env['res.users'].sudo().search([('old_id', '=', record[i])])
+                        data['user_id'] = user.id
                     else:
                         data[colnames[i]] = record[i]
+                data.pop('message_last_post')
+                data.pop('openupgrade_legacy_12_0_commitment_date')
+                data.pop('auto_generated')
+                data.pop('auto_purchase_order_id')
+                data.pop('margin')
+                data.pop('quote_viewed')
+                data.pop('require_payment_moved0')
+                data.pop('template_id')
+                data.pop('openupgrade_legacy_12_0_payment_tx_id')
+                data.pop('payment_acquirer_id')
+                data.pop('delivery_price')
+                data.pop('invoice_shipping_on_delivery')
+                data.pop('confirmation_date')
+                data.pop('openupgrade_legacy_12_0_activity_date_deadline')
                 sale_order = self.env['sale.order'].sudo().search([('old_id', '=',data['old_id'])])
+                _logger.info(f"{data}")
                 if sale_order:
                     _logger.info('EXIST')
                 else:
+                    if 'pricelist_id' in data and 'partner_id' in data:
+                        _logger.info('CREATE')
+                        self.env['sale.order'].sudo().create(data)
+                _logger.info("\n")
+                _logger.info("\n")
+
+        except (Exception, psycopg2.Error) as error:
+            _logger.info(f"{error}")
+
+        finally:
+            # closing database connection.
+            if (connection):
+                cursor.close()
+                connection.close()
+                _logger.info("PostgreSQL connection is closed")
+
+    def same_fields_check(self,list_v12_fields,list_v14_fields):
+        final_list_fields=[]
+        for field in list_v12_fields:
+            if field in list_v14_fields:
+                final_list_fields.append(field)
+        return final_list_fields
+
+    def new_company_migrate(self):
+        try:
+            _logger.info("RES COMPANY MIGRATE")
+            cli_commands = tl.config
+            connection1 = psycopg2.connect(user=cli_commands.get('user_name'),
+                                          password=cli_commands.get('local_password'),
+                                          host="172.17.0.1",
+                                          port="5432",
+                                          database="v12cc-sabota")
+
+            cursor1 = connection1.cursor()
+            cursor1.execute("Select * FROM res_company LIMIT 0")
+            list_fields_v12 = [desc[0] for desc in cursor1.description]
+            # _logger.info(f"fields vo 12ka {list_fields_v12}")
+
+
+            connection2 = psycopg2.connect(user=cli_commands.get('local_odoo_db_user'),
+                                          password=cli_commands.get('local_odoo_db_password'),
+                                          host="172.19.0.2",
+                                          port="5432",
+                                          database="najnovaDB-merge")
+
+            cursor2 = connection2.cursor()
+            cursor2.execute("Select * FROM res_company LIMIT 0")
+            list_fields_v14 = [desc[0] for desc in cursor2.description]
+            # _logger.info(f"fields vo 14ka {list_fields_v14}")
+
+            colnames = self.same_fields_check(list_fields_v12,list_fields_v14)
+            # _logger.info(f"zaednicki fildovi se {colnames}")
+
+            query = '''SELECT * FROM res_company; '''
+            cursor1.execute(query)
+            companies = cursor1.fetchall()
+            for record in companies:
+                _logger.info(f"{record}")
+                data = {}
+                data['old_id'] = record[0]
+                for i in range(1, len(list_fields_v12)):
+                    if list_fields_v12[i] == 'partner_id':
+                        partner = self.env['res.partner'].search([('old_id','=',record[i])])
+                        for p in partner:
+                            data['partner_id'] = p.id
+                            break
+                        data['old_partner_id'] = record[i]
+                    elif list_fields_v12[i] == 'parent_id':
+                        partner = self.env['res.partner'].search([('old_id', '=', record[i])])
+                        for p in partner:
+                            data['parent_id'] = p.id
+                            break
+                        data['old_parent_id'] = record[i]
+                    else:
+                        data[list_fields_v12[i]] = record[i]
+                final_data = {}
+                for field in colnames:
+                    if field in data:
+                        final_data[field] = data[field]
+                final_data['old_id'] = data['old_id']
+                company = self.env['res.company'].search([('old_id','=',final_data['old_id'])])
+                final_data.pop('project_time_mode_id')
+                final_data.pop('internal_transit_location_id')
+                final_data.pop('security_lead')
+                final_data.pop('vat_check_vies')
+                final_data.pop('nomenclature_id')
+                final_data.pop('timesheet_encode_uom_id')
+                final_data.pop('fiscalyear_last_month')
+                final_data.pop('font')
+                final_data.pop('resource_calendar_id')
+                final_data.pop('chart_template_id')
+                final_data.pop('currency_exchange_journal_id')
+                final_data.pop('external_report_layout_id')
+                final_data.pop('parent_id')
+                for i in range(len(colnames)):
+                    if 'rml_' in colnames[i]:
+                        final_data.pop(colnames[i])
+                    elif 'account_' in colnames[i]:
+                        final_data.pop(colnames[i])
+                    elif 'sale_' in colnames[i]:
+                        final_data.pop(colnames[i])
+                    elif 'po_' in colnames[i]:
+                        final_data.pop(colnames[i])
+                    elif 'x_' in colnames[i]:
+                        final_data.pop(colnames[i])
+                    elif 'social_' in colnames[i]:
+                        final_data.pop(colnames[i])
+                    elif 'leave_' in colnames[i]:
+                        final_data.pop(colnames[i])
+                    elif 'invoice_' in colnames[i]:
+                        final_data.pop(colnames[i])
+                _logger.info(f"{final_data}")
+                if company:
+                    company.write({'old_id': final_data['old_id']})
+                    _logger.info('\n')
+                    _logger.info('\n')
+                else:
+                    try:
+                        self.env['res.company'].sudo().create(final_data)
+                        _logger.info('\n')
+                        _logger.info('\n')
+                    except (Exception) as error:
+                        logging.exception(f"Error while creating a new company: {error} ")
+                        _logger.info('\n')
+                        _logger.info('\n')
+                        continue
+
+
+        except (Exception, psycopg2.Error) as error:
+            _logger.info(f"Error while connecting to PostgreSQL {error}")
+
+        finally:
+            # closing database connection.
+            if (connection1):
+                cursor1.close()
+                connection1.close()
+                print("PostgreSQL connection is closed")
+
+    def new_res_partner_migrate(self):
+        try:
+            _logger.info("NEW PARTNER MIGRATE")
+            cli_commands = tl.config
+            connection1 = psycopg2.connect(user=cli_commands.get('user_name'),
+                                          password=cli_commands.get('local_password'),
+                                          host="172.17.0.1",
+                                          port="5432",
+                                          database="v12cc-sabota")
+
+            cursor1 = connection1.cursor()
+            cursor1.execute("Select * FROM res_partner LIMIT 0")
+            list_fields_v12 = [desc[0] for desc in cursor1.description]
+            # _logger.info(f"fields vo 12ka {list_fields_v12}")
+
+
+            connection2 = psycopg2.connect(user=cli_commands.get('local_odoo_db_user'),
+                                          password=cli_commands.get('local_odoo_db_password'),
+                                          host="172.19.0.2",
+                                          port="5432",
+                                          database="v14-empty")
+
+            cursor2 = connection2.cursor()
+            cursor2.execute("Select * FROM res_partner LIMIT 0")
+            list_fields_v14 = [desc[0] for desc in cursor2.description]
+            # _logger.info(f"fields vo 14ka {list_fields_v14}")
+
+            colnames_final = self.same_fields_check(list_fields_v12,list_fields_v14)
+            # _logger.info(f"zaednicki fildovi se {colnames}")
+
+            query_job = '''SELECT * FROM res_partner; '''
+            cursor1.execute(query_job)
+            records = cursor1.fetchall()
+
+            for record in records:
+                _logger.info(f"rekordot {record}")
+                data = {}
+                data['old_id'] = record[0]
+                for i in range(1, len(list_fields_v12)):
+                    # print(f'{colnames[i]} : {record[i]}')
+                    if list_fields_v12[i] == 'company_id':
+                        data['old_company_id'] = record[i]
+                    elif list_fields_v12[i] == 'user_id':
+                        data['old_user_id'] = record[i]
+                    else:
+                        data[list_fields_v12[i]] = record[i]
+                final_data={}
+                for field in colnames_final:
+                    if field in data:
+                        final_data[field] = data[field]
+                final_data['old_id'] = data['old_id']
+                final_data['old_company_id'] = data['old_company_id']
+                final_data['old_user_id'] = data['old_user_id']
+                final_data.pop('invoice_warn')
+                final_data.pop('lang')
+                final_data.pop('industry_id')
+                final_data.pop('partner_gid')
+                final_data.pop('additional_info')
+                final_data.pop('is_published')
+                final_data.pop('picking_warn')
+                final_data.pop('type')
+                final_data.pop('commercial_partner_id')
+                final_data.pop('parent_id')
+                final_data.pop('team_id')
+                final_data.pop('title')
+                final_data.pop('state_id')
+                final_data.pop('date')
+                final_data.pop('signup_expiration')
+                final_data.pop('message_main_attachment_id')
+                final_data.pop('country_id')
+                _logger.info(f"FINAL DATA {final_data}")
+                flag = 0
+                if final_data['email']:
+                    name = final_data['name'].strip()
+                    name = name.replace("  ", " ")
+                    partners = self.env['res.partner'].sudo().search(
+                        [('name', "ilike", name), ('email', 'ilike', final_data['email'])])
+                else:
+                    name = final_data['name'].strip()
+                    name = name.replace("  ", " ")
+                    partners = self.env['res.partner'].sudo().search(
+                        [('name', "ilike", name)])
+                if partners:
+                    for partner in partners:
+                        flag = 1
+                        _logger.info("EXIST")
+                        partner.write({
+                            'old_id': data['old_id']
+                        })
+                        break
+
+                if flag == 0:
+                    try:
+                        _logger.info("CREATE")
+                        self.env['res.partner'].sudo().create(final_data)
+                    except (Exception, psycopg2.Error) as error:
+                        _logger.info(f"Error while creating a partner {error}")
+                        _logger.info("\n")
+                        _logger.info("\n")
+                        continue
+                _logger.info("\n")
+                _logger.info("\n")
+
+
+        except (Exception, psycopg2.Error) as error:
+            _logger.info(f"Error while connecting to PostgreSQL {error}")
+
+        finally:
+            # closing database connection.
+            if (connection1):
+                cursor1.close()
+                connection1.close()
+                print("PostgreSQL connection is closed")
+
+    def new_res_partner_message(self):
+        try:
+            cli_commands = tl.config
+            connection1 = psycopg2.connect(user=cli_commands.get('user_name'),
+                                          password=cli_commands.get('local_password'),
+                                          host="172.17.0.1",
+                                          port="5432",
+                                          database="v12cc-sabota")
+
+            cursor1 = connection1.cursor()
+            cursor1.execute("Select * FROM mail_message LIMIT 0")
+            colnames = [desc[0] for desc in cursor1.description]
+            # _logger.info(f"fields vo 12ka {list_fields_v12}")
+
+
+            connection2 = psycopg2.connect(user=cli_commands.get('local_odoo_db_user'),
+                                          password=cli_commands.get('local_odoo_db_password'),
+                                          host="172.19.0.2",
+                                          port="5432",
+                                          database="v14-empty")
+
+            cursor2 = connection2.cursor()
+            cursor2.execute("Select * FROM mail_message LIMIT 0")
+            list_fields_v14 = [desc[0] for desc in cursor2.description]
+            # _logger.info(f"fields vo 14ka {list_fields_v14}")
+
+            # colnames = self.same_fields_check(list_fields_v12,list_fields_v14)
+            #_logger.info(f"zaednicki fildovi se {colnames}")
+            query = '''SELECT * FROM mail_message where model='res.partner'; '''
+            cursor1.execute(query)
+            records = cursor1.fetchall()
+            for record in records:
+                data = {}
+                data['old_id'] = record[0]
+                for i in range(1, len(colnames)):
+                    if colnames[i] == 'parent_id':
+                        data['old_parent_id'] = record[i]
+                    elif colnames[i] == 'author_id':
+                        partner = self.env['res.partner'].sudo().search([('old_id', '=', record[i])])
+                        if partner:
+                            for p in partner:
+                                data['author_id'] = p.id
+                                break
+                    elif colnames[i] == 'subtype_id':
+                        data['old_subtype_id'] = record[i]
+                    elif colnames[i] == 'res_id':
+                        data['old_res_id'] = record[i]
+                    else:
+                        data[colnames[i]] = record[i]
+                data.pop('layout')
+                data.pop('website_published')
+                data.pop('sent_mobile')
+                data.pop('mail_activity_type_id')
+                data.pop('mail_server_id')
+                # for pair in data.items():
+                #    print(pair)
+                messages = self.env['mail.message'].sudo().search([('old_id', '=', data['old_id'])])
+                if messages:
+                    for message in messages:
+                        if data['old_id'] == message.old_id:
+                            _logger.info('WRITE')
+                            new_partner_id = self.env['res.partner'].sudo().search(
+                                [('old_id', '=', data['old_res_id'])])
+                            for new_id in new_partner_id:
+                                _logger.info({new_id.id})
+                                message.write({'res_id': new_id.id})
+                                break
+                else:
                     _logger.info('CREATE')
-                    self.env['sale.order'].sudo().create(data)
+                    new_partner_id = self.env['res.partner'].sudo().search([('old_id', '=', data['old_res_id'])])
+                    for new_id in new_partner_id:
+                        _logger.info(f'{new_id.id}')
+                        data['res_id'] = new_id.id
+                        break
+                    self.env['mail.message'].sudo().create(data)
+
+        except (Exception, psycopg2.Error) as error:
+            _logger.info(f"Error while connecting to PostgreSQL {error}")
+
+        finally:
+            # closing database connection.
+            if (connection1):
+                cursor1.close()
+                connection1.close()
+                _logger.info("PostgreSQL connection is closed")
+
+    def new_res_partner_attachments(self):
+        try:
+            _logger.info("ATTACHMENTS MIGRATE")
+            cli_commands = tl.config
+            connection = psycopg2.connect(user=cli_commands.get('user_name'),
+                                          password=cli_commands.get('local_password'),
+                                          host="172.17.0.1",
+                                          port="5432",
+                                          database="v12cc-sabota")
+
+            cursor = connection.cursor()
+            # Print PostgreSQL Connection properties
+            print(connection.get_dsn_parameters(), "\n")
+
+            # Print PostgreSQL version
+            cursor.execute("SELECT version();")
+            record = cursor.fetchone()
+            _logger.info(f"You are connected to -  {record}")
+
+            cursor.execute("Select * FROM ir_attachment LIMIT 0")
+            colnames = [desc[0] for desc in cursor.description]
+            # print(colnames)
+            query = '''SELECT * FROM ir_attachment where res_model='res.partner'; '''
+            cursor.execute(query)
+            attachments = cursor.fetchall()
+
+            connection2 = psycopg2.connect(user=cli_commands.get('local_odoo_db_user'),
+                                           password=cli_commands.get('local_odoo_db_password'),
+                                           host="172.19.0.2",
+                                           port="5432",
+                                           database="v14-empty")
+
+            cursor2 = connection2.cursor()
+            cursor2.execute("Select * FROM ir_attachment LIMIT 0")
+            list_fields_v14 = [desc[0] for desc in cursor2.description]
+            _logger.info(f"FILDOVI VO 14ka{list_fields_v14}")
+            for record in attachments:
+                data = {}
+                data['old_id'] = record[0]
+                for i in range(1, len(colnames)):
+                    if colnames[i] == 'company_id':
+                        companies = self.env['res.company'].sudo().search([('old_id', '=', record[i])])
+                        if companies:
+                            for company in companies:
+                                data['company_id'] = company.id
+                    elif colnames[i] == 'create_uid':
+                        users = self.env['res.users'].sudo().search([('old_id', '=', record[i])])
+                        if users:
+                            for user in users:
+                                data['create_uid'] = user.id
+                    elif colnames[i] == 'write_uid':
+                        users = self.env['res.users'].sudo().search([('old_id', '=', record[i])])
+                        if users:
+                            for user in users:
+                                data['create_uid'] = user.id
+                    elif colnames[i] == 'res_id':
+                        partners = self.env['res.partner'].sudo().search([('old_id', '=', record[i])])
+                        _logger.info(f"{partners}")
+                        if partners:
+                            for partner in partners:
+                                data['res_id'] = partner.id
+                    else:
+                        data[colnames[i]] = record[i]
+
+                for key in list(data):
+                    if key not in list_fields_v14:
+                        data.pop(key)
+
+                _logger.info(f"DATATA E {data}")
+                try:
+                    _logger.info("CREATE")
+                    self.env['ir.attachment'].sudo().create(data)
+                    _logger.info("\n")
+                    _logger.info("\n")
+                except (Exception, psycopg2.Error) as error:
+                    _logger.info(f"Error while creating a attachment {error}")
+                    _logger.info("\n")
+                    _logger.info("\n")
+                _logger.info("\n")
+                _logger.info("\n")
 
         except (Exception, psycopg2.Error) as error:
             _logger.info(f"Error while connecting to PostgreSQL {error}")
@@ -3144,6 +3780,41 @@ class DbMigrate(models.Model):
                 cursor.close()
                 connection.close()
                 _logger.info("PostgreSQL connection is closed")
+
+    def new_res_partner_update(self):
+        cli_commands = tl.config
+        connection1 = psycopg2.connect(user=cli_commands.get('user_name'),
+                                       password=cli_commands.get('local_password'),
+                                       host="172.17.0.1",
+                                       port="5432",
+                                       database="v12cc-sabota")
+
+        cursor1 = connection1.cursor()
+        query_job = '''SELECT id,parent_id FROM res_partner; '''
+        cursor1.execute(query_job)
+        old_partners = cursor1.fetchall()
+        for partner in old_partners:
+            _logger.info(f"{partner}")
+            new_partner = self.env['res.partner'].sudo().search([('old_id','=',partner[0])])
+            parent_id = self.env['res.partner'].sudo().search([('old_id','=',partner[1])])
+            company = self.env['res.company'].sudo().search([('old_id','=',new_partner.old_company_id)])
+            try:
+                _logger.info("UPDATE")
+                new_partner.write({
+                    'parent_id' : parent_id,
+                    'company_id' : company.id
+                })
+                _logger.info('\n')
+                _logger.info('\n')
+            except (Exception) as error:
+                logging.exception(f"Error while updating a partner: {error} ")
+                _logger.info('\n')
+                _logger.info('\n')
+                continue
+
+
+
+
 
 class DbMigrateJobs(models.Model):
     _inherit = "hr.job"
@@ -3287,4 +3958,8 @@ class DbMigrateSaleOrder(models.Model):
     old_warehouse_id = fields.Integer(string='id of warehouse_id before migration')
 
 
-
+class DbStockLocationMigrate(models.Model):
+    _inherit = 'stock.location'
+    old_id = fields.Integer(string='id before migration')
+    old_parent_id = fields.Integer(string='old parent id')
+    old_location_id = fields.Integer(string='old parent location')

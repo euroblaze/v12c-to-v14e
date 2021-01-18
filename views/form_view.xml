@@ -7,7 +7,7 @@
             <field name="arch" type="xml">
                 <xpath expr="//div[@name='button_box']" position="after">
                     <div class="oe_button_box" name="button_box">
-                        <button name="new_res_partner_update" type="object"
+                        <button name="new_crm_lead_attachments" type="object"
                                 class="oe_stat_button">
                             <b>Migrate</b>
                         </button>

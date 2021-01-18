@@ -18,30 +18,25 @@ class DbMigratePartners(models.Model):
             _logger.info("NEW PARTNER MIGRATE")
             cli_commands = tl.config
             connection1 = psycopg2.connect(user=cli_commands.get('user_name'),
-                                          password=cli_commands.get('local_password'),
-                                          host="172.17.0.1",
-                                          port="5432",
-                                          database="v12cc-sabota")
+                                           password=cli_commands.get('local_password'),
+                                           host="172.17.0.1",
+                                           port="5432",
+                                           database="v12cc-sabota")
 
             cursor1 = connection1.cursor()
             cursor1.execute("Select * FROM res_partner LIMIT 0")
             list_fields_v12 = [desc[0] for desc in cursor1.description]
             # _logger.info(f"fields vo 12ka {list_fields_v12}")
 
-
             connection2 = psycopg2.connect(user=cli_commands.get('local_odoo_db_user'),
-                                          password=cli_commands.get('local_odoo_db_password'),
-                                          host="172.19.0.2",
-                                          port="5432",
-                                          database="v14-empty")
+                                           password=cli_commands.get('local_odoo_db_password'),
+                                           host="172.19.0.2",
+                                           port="5432",
+                                           database="v14-empty")
 
             cursor2 = connection2.cursor()
             cursor2.execute("Select * FROM res_partner LIMIT 0")
             list_fields_v14 = [desc[0] for desc in cursor2.description]
-            # _logger.info(f"fields vo 14ka {list_fields_v14}")
-
-            colnames_final = self.same_fields_check(list_fields_v12,list_fields_v14)
-            # _logger.info(f"zaednicki fildovi se {colnames}")
 
             query_job = '''SELECT * FROM res_partner; '''
             cursor1.execute(query_job)
@@ -59,39 +54,19 @@ class DbMigratePartners(models.Model):
                         data['old_user_id'] = record[i]
                     else:
                         data[list_fields_v12[i]] = record[i]
-                final_data={}
-                for field in colnames_final:
-                    if field in data:
-                        final_data[field] = data[field]
-                final_data['old_id'] = data['old_id']
-                final_data['old_company_id'] = data['old_company_id']
-                final_data['old_user_id'] = data['old_user_id']
-                final_data.pop('invoice_warn')
-                final_data.pop('lang')
-                final_data.pop('industry_id')
-                final_data.pop('partner_gid')
-                final_data.pop('additional_info')
-                final_data.pop('is_published')
-                final_data.pop('picking_warn')
-                final_data.pop('type')
-                final_data.pop('commercial_partner_id')
-                final_data.pop('parent_id')
-                final_data.pop('team_id')
-                final_data.pop('title')
-                final_data.pop('state_id')
-                final_data.pop('date')
-                final_data.pop('signup_expiration')
-                final_data.pop('message_main_attachment_id')
-                final_data.pop('country_id')
-                _logger.info(f"FINAL DATA {final_data}")
+                for key in list(data):
+                    if key not in list_fields_v14:
+                        data.pop(key)
+                data.pop('commercial_partner_id')
+                _logger.info(f"FINAL DATA {data}")
                 flag = 0
-                if final_data['email']:
-                    name = final_data['name'].strip()
+                if data['email']:
+                    name = data['name'].strip()
                     name = name.replace("  ", " ")
                     partners = self.env['res.partner'].sudo().search(
-                        [('name', "ilike", name), ('email', 'ilike', final_data['email'])])
+                        [('name', "ilike", name), ('email', 'ilike', data['email'])])
                 else:
-                    name = final_data['name'].strip()
+                    name = data['name'].strip()
                     name = name.replace("  ", " ")
                     partners = self.env['res.partner'].sudo().search(
                         [('name', "ilike", name)])
@@ -107,7 +82,7 @@ class DbMigratePartners(models.Model):
                 if flag == 0:
                     try:
                         _logger.info("CREATE")
-                        self.env['res.partner'].sudo().create(final_data)
+                        self.env['res.partner'].sudo().create(data)
                     except (Exception, psycopg2.Error) as error:
                         _logger.info(f"Error while creating a partner {error}")
                         _logger.info("\n")

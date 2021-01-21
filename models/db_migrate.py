@@ -5578,6 +5578,59 @@ class DbMigrate(models.Model):
                 connection.close()
                 _logger.info("PostgreSQL connection is closed")
 
+
+    def run(self):
+        # RES.PARTNER
+
+        self.new_company_migrate()
+        self..new_res_partner_migrate()
+
+        # HR.APPLICANT MIGRATION
+
+        self.new_hr_applicant_migrate()
+        self.new_hr_applicants_creation_in_res_partner()
+
+        self.new_res_partner_update()  # UPDATING ALL RES.PARTNER RECORDS
+
+        self.new_hr_applicant_language_migrate()
+        self.new_hr_applicant_experience_migrate()
+        self.new_hr_applicant_education_migrate()
+        self.new_hr_applicant_category_migrate()
+        self.new_update_relation_applicant_category()
+        self.new_hr_job_migrate()
+        self.new_hr_department_migrate()
+        self.new_update_department_db()
+        self.new_hr_employee_migrate()
+        self.new_hr_stage_migrate()
+        self.new_update_stage()
+        self.new_update_hr_applicant_db()
+        self.new_followers_update_for_applicant_messages()
+
+        # CRM
+
+        self.new_crm_lead_migrate()
+        self.new_crm_lead_team_and_country_old_id_update()
+        self.new_crm_lead_tag_migrate_db()
+        self.new_update_relation_crm_lead_tag()
+        self.new_crm_stage_migrate_db()
+        self.new_crm_team_migrate_db()
+        self.new_crm_lead_team_update()
+        self.new_crm_lead_stage_update()
+        self.new_res_country_migrate()
+        self.new_res_currency_migrate()
+        self.new_update_country_currency()
+        self.new_update_crm_lead_country()
+        self.new_crm_lead_user_update()
+
+        # ATTACHMENTS AND MESSAGES FOR RES.PARTNER, HR.APPLICANT and CRM
+
+        self.new_res_partner_message()
+        self.new_res_partner_attachments()
+        self.new_hr_applicant_messages()
+        self.new_hr_applicant_attachments()
+        self.new_crm_messages()
+        self.new_crm_lead_attachments()
+
 class DbMigrateJobs(models.Model):
     _inherit = "hr.job"
     old_id = fields.Integer(string='id before migration')
